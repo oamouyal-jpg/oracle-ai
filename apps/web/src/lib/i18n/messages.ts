@@ -4,7 +4,12 @@ export const LOCALES: Locale[] = ["en", "he", "fr"];
 
 export const LOCALE_STORAGE_KEY = "oracle-locale";
 
-export type Messages = typeof en;
+/** Widen literal strings so en/he/fr share the same Messages type */
+type WidenStrings<T> = T extends string
+  ? string
+  : T extends object
+    ? { [K in keyof T]: WidenStrings<T[K]> }
+    : T;
 
 const en = {
   meta: {
@@ -343,6 +348,8 @@ const en = {
     notSupported: "Voice input is not supported in this browser. Try Chrome or Edge.",
   },
 } as const;
+
+export type Messages = WidenStrings<typeof en>;
 
 const he: Messages = {
   meta: {
