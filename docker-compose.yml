@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: oracle
+      POSTGRES_PASSWORD: oracle
+      POSTGRES_DB: oracle_ai
+    volumes:
+      - oracle_pg:/var/lib/postgresql/data
+
+volumes:
+  oracle_pg:

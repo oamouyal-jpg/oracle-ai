@@ -1,0 +1,34 @@
+{
+	"folders": [
+		{
+			"path": "../Bridge/.git"
+		},
+		{
+			"path": "../Bridge/.next"
+		},
+		{
+			"path": "../Bridge/app"
+		},
+		{
+			"path": "../Bridge/components"
+		},
+		{
+			"path": "../Bridge/hooks"
+		},
+		{
+			"path": "../Bridge/lib"
+		},
+		{
+			"path": "../Bridge/node_modules"
+		},
+		{
+			"path": "../Bridge/public"
+		},
+		{
+			"path": "../Bridge/scripts"
+		},
+		{
+			"path": "../Bridge/stores"
+		}
+	]
+}

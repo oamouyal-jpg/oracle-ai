@@ -1,0 +1,21 @@
+{
+  "name": "oracle-ai",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w @oracle/api\" \"npm run dev -w @oracle/web\"",
+    "dev:web": "npm run dev -w @oracle/web",
+    "dev:api": "npm run dev -w @oracle/api",
+    "build": "npm run build -w @oracle/api && npm run build -w @oracle/web",
+    "db:generate": "npm run db:generate -w @oracle/api",
+    "db:push": "npm run db:push -w @oracle/api",
+    "db:seed": "npm run db:seed -w @oracle/api",
+    "db:reset": "npm run db:reset -w @oracle/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -1,0 +1,27 @@
+# Render Blueprint — deploy API from apps/api
+# Dashboard: New → Blueprint → connect this repo, or create a Web Service manually.
+#
+# After deploy, set on the API service (if not using a linked Postgres):
+#   OPENAI_API_KEY, DATABASE_URL, CORS_ORIGIN (your Vercel URL)
+
+services:
+  - type: web
+    name: oracle-api
+    runtime: node
+    rootDir: apps/api
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npx prisma db push && npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: PORT
+        value: "4000"
+      - key: CORS_ORIGIN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: DEV_USER_ID
+        value: dev-user

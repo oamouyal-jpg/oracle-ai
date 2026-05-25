@@ -1,0 +1,326 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String            @id @default(cuid())
+  clerkId          String?           @unique
+  email            String            @unique
+  name             String?
+  strategicProfile Json?
+  energyLevel      Int               @default(70)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  domains          Domain[]
+  missions         Mission[]
+  tasks            Task[]
+  journalEntries   JournalEntry[]
+  emotionalLogs    EmotionalLog[]
+  dailyBriefings   DailyBriefing[]
+  nightDebriefs    NightDebrief[]
+  aiMemories       AIMemory[]
+  reminders        Reminder[]
+  chatMessages     ChatMessage[]
+  reflections      Reflection[]
+  alignmentSnapshots AlignmentSnapshot[]
+  momentumSnapshots MissionMomentumSnapshot[]
+}
+
+model Domain {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  slug            String
+  icon            String   @default("◆")
+  color           String   @default("#6366f1")
+  currentState    String?
+  goals           Json     @default("[]")
+  activeIssues    Json     @default("[]")
+  aiObservations  String?
+  progress        Int      @default(0)
+  priority        Int      @default(50)
+  missions        Mission[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, slug])
+}
+
+model Mission {
+  id                  String        @id @default(cuid())
+  userId              String
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domainId            String?
+  domain              Domain?       @relation(fields: [domainId], references: [id], onDelete: SetNull)
+  title               String
+  purpose             String?
+  whyItMatters        String?
+  desiredOutcome      String?
+  status              MissionStatus @default(ACTIVE)
+  missionType         MissionType   @default(GENERAL)
+  priorityScore       Int           @default(50)
+  deadline            DateTime?
+  blockers            Json          @default("[]")
+  risks               Json          @default("[]")
+  nextActions         Json          @default("[]")
+  emotionalResistance Int           @default(0)
+  estimatedImpact     Int           @default(50)
+  aiStrategy          String?
+  aiNotes             String?
+  weeklyReview        String?
+  tradingConfig       Json?
+  progress            Int           @default(0)
+  momentumScore       Int           @default(0)
+  stabilityScore      Int           @default(50)
+  resistanceScore     Int           @default(0)
+  lastAiReviewAt      DateTime?
+  tasks               Task[]
+  momentumSnapshots   MissionMomentumSnapshot[]
+  updates             MissionUpdate[]
+  tradingLogs         TradingDailyLog[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
+enum MissionStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum MissionType {
+  GENERAL
+  TRADING
+}
+
+model MissionUpdate {
+  id               String     @id @default(cuid())
+  missionId        String
+  mission          Mission    @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  userId           String
+  updateType       UpdateType @default(DAILY)
+  content          String
+  progressSnapshot Int?
+  aiAnalysis       String?
+  createdAt        DateTime   @default(now())
+}
+
+enum UpdateType {
+  DAILY
+  WEEKLY
+}
+
+model TradingDailyLog {
+  id                  String   @id @default(cuid())
+  missionId           String
+  mission             Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  userId              String
+  date                DateTime @default(now())
+  responses           Json
+  emotionalBefore     Int?
+  emotionalAfter      Int?
+  followedRules       Boolean?
+  tradedFromCalm      Boolean?
+  setupQuality        Int?
+  instrument          String?
+  contractsUsed       Int?
+  ruleViolations      Json     @default("[]")
+  revengeTrade        Boolean  @default(false)
+  hesitation          Boolean  @default(false)
+  overtraded          Boolean  @default(false)
+  respectedStop       Boolean?
+  dailyRisk           String?
+  maxLoss             String?
+  lessonsLearned      String?
+  disciplineScore     Int?
+  executionScore      Int?
+  riskControlScore    Int?
+  aiDailyReport       String?
+  createdAt           DateTime @default(now())
+
+  @@unique([missionId, date])
+}
+
+model Task {
+  id                   String     @id @default(cuid())
+  userId               String
+  user                 User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  missionId            String?
+  mission              Mission?   @relation(fields: [missionId], references: [id], onDelete: SetNull)
+  title                String
+  description          String?
+  status               TaskStatus @default(PENDING)
+  priority             Int        @default(50)
+  dueDate              DateTime?
+  recurring            Boolean    @default(false)
+  aiGenerated          Boolean    @default(false)
+  energyCost           Int        @default(30)
+  estimatedEffort      Int        @default(30)
+  emotionalDifficulty  Int        @default(30)
+  completionNote       String?
+  completedAt          DateTime?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  PARTIAL
+  SKIPPED
+  DELAYED
+  RESCHEDULED
+  CANCELLED
+}
+
+model Reflection {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content         String
+  mood            Int?
+  energy          Int?
+  extracted       Json?
+  actualProgress  Int?
+  emotionalState  String?
+  resistance      Int?
+  momentumSignal  Int?
+  avoidance       String?
+  alignmentSignal Int?
+  aiAnalysis      String?
+  createdAt       DateTime @default(now())
+}
+
+model AlignmentSnapshot {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date                DateTime @default(now())
+  alignmentScore      Int
+  driftScore          Int
+  overloadScore       Int
+  meaningfulProgress  Int
+  executionConsistency Int
+  emotionalStability  Int
+  frictionAreas       Json     @default("[]")
+  patterns            Json     @default("[]")
+  recommendations     Json     @default("[]")
+  aiAssessment        String?
+  createdAt           DateTime @default(now())
+
+  @@unique([userId, date])
+}
+
+model MissionMomentumSnapshot {
+  id              String   @id @default(cuid())
+  missionId       String
+  mission         Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date            DateTime @default(now())
+  momentumScore   Int
+  completionPct   Int
+  stabilityScore  Int
+  resistanceScore Int
+  createdAt       DateTime @default(now())
+
+  @@unique([missionId, date])
+}
+
+model DailyBriefing {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date                DateTime @default(now())
+  topPriorities       Json     @default("[]")
+  emotionalObservation String?
+  focusRecommendation String?
+  reminders           Json     @default("[]")
+  missionProgress     String?
+  strategicGuidance   String?
+  fullContent         String?
+  createdAt           DateTime @default(now())
+
+  @@unique([userId, date])
+}
+
+model NightDebrief {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date              DateTime @default(now())
+  responses         Json
+  focusScore        Int?
+  emotionalScore    Int?
+  executionScore    Int?
+  alignmentScore    Int?
+  energyScore       Int?
+  aiAssessment      String?
+  behavioralNotes   Json     @default("[]")
+  tomorrowPlan      Json?
+  patternDetected   String?
+  createdAt         DateTime @default(now())
+
+  @@unique([userId, date])
+}
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  mood      Int?
+  tags      Json     @default("[]")
+  createdAt DateTime @default(now())
+}
+
+model EmotionalLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level     Int
+  label     String?
+  triggers  Json     @default("[]")
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model AIMemory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String
+  content   String
+  embedding String?
+  importance Int     @default(50)
+  createdAt DateTime @default(now())
+}
+
+model Reminder {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String?
+  dueAt     DateTime
+  sent      Boolean  @default(false)
+  smart     Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+}
