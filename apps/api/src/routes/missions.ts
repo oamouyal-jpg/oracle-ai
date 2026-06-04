@@ -6,7 +6,7 @@ import { asStringArray } from "../lib/arrays.js";
 import { resolveUserId } from "../lib/user.js";
 import { requestLocale } from "../lib/requestLocale.js";
 import { getTradingQuestions } from "../lib/tradingQuestions.js";
-import { getTradingRules, localizeDomain } from "../lib/contentLocale.js";
+import { getTradingRules, localizeDomainName } from "../lib/contentLocale.js";
 import {
   DEFAULT_TRADING_RULES,
   generateMissionAiReview,
@@ -52,10 +52,14 @@ missionsRouter.get("/", asyncHandler(async (req, res) => {
         domain?: { slug: string; name: string; color: string };
       };
       const formatted = formatMission(row);
-      if (row.domain) {
-        formatted.domain = localizeDomain(row.domain, locale);
-      }
-      return formatted;
+      if (!row.domain) return formatted;
+      return {
+        ...formatted,
+        domain: {
+          ...row.domain,
+          name: localizeDomainName(row.domain.slug, locale, row.domain.name),
+        },
+      };
     })
   );
 }));
@@ -293,8 +297,9 @@ missionsRouter.get("/:id/trading/weekly", async (req, res) => {
 
 missionsRouter.delete("/:id", asyncHandler(async (req, res) => {
   const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const result = await prisma.mission.deleteMany({
-    where: { id: req.params.id, userId },
+    where: { id, userId },
   });
   if (result.count === 0) {
     res.status(404).json({ error: "Not found" });

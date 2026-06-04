@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { asStringArray } from "../lib/arrays.js";
 import { createChatCompletion } from "../lib/openai.js";
@@ -151,7 +152,7 @@ ${localeAiInstruction(locale)}`,
       content,
       mood,
       energy,
-      extracted,
+      extracted: extracted as Prisma.InputJsonValue,
       actualProgress: Number(extracted.actualProgress) || undefined,
       emotionalState: String(extracted.emotionalState ?? ""),
       resistance: Number(extracted.resistance) || undefined,
