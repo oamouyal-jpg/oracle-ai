@@ -40,6 +40,19 @@ const en = {
     strategicMode: "Strategic Mode",
     operatorActive: "Operator active",
   },
+  mobile: {
+    menu: "Menu",
+    more: "More",
+  },
+  share: {
+    title: "Oracle — Life OS",
+    text: "My strategic life operating system — missions, alignment, and daily execution.",
+    button: "Share",
+    copied: "Link copied!",
+    copyPrompt: "Copy this link:",
+    addToHome: "Add to Home Screen",
+    installHint: "Use browser menu → Add to Home Screen / Install app",
+  },
   common: {
     loading: "Initializing Oracle...",
     save: "Save",
@@ -380,6 +393,19 @@ const he: Messages = {
     strategicMode: "מצב אסטרטגי",
     operatorActive: "מפעיל פעיל",
   },
+  mobile: {
+    menu: "תפריט",
+    more: "עוד",
+  },
+  share: {
+    title: "Oracle — מערכת חיים",
+    text: "מערכת ההפעלה האסטרטגית שלי — משימות, יישור וביצוע יומי.",
+    button: "שתף",
+    copied: "הקישור הועתק!",
+    copyPrompt: "העתק קישור:",
+    addToHome: "הוסף למסך הבית",
+    installHint: "תפריט הדפדפן → הוסף למסך הבית / התקן אפליקציה",
+  },
   common: {
     loading: "מאתחל את Oracle...",
     save: "שמור",
@@ -714,6 +740,19 @@ const fr: Messages = {
     lifeOs: "OS de vie",
     strategicMode: "Mode stratégique",
     operatorActive: "Opérateur actif",
+  },
+  mobile: {
+    menu: "Menu",
+    more: "Plus",
+  },
+  share: {
+    title: "Oracle — OS de vie",
+    text: "Mon système d'exploitation stratégique — missions, alignement et exécution quotidienne.",
+    button: "Partager",
+    copied: "Lien copié !",
+    copyPrompt: "Copiez ce lien :",
+    addToHome: "Ajouter à l'écran d'accueil",
+    installHint: "Menu du navigateur → Ajouter à l'écran d'accueil / Installer",
   },
   common: {
     loading: "Initialisation d'Oracle...",

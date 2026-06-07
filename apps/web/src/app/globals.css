@@ -26,7 +26,9 @@ body {
   color: #e4e4e7;
   font-family: var(--font-sans);
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html[lang="he"] body {
