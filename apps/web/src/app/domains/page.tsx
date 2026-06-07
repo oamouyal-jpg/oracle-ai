@@ -10,9 +10,17 @@ import { localizeDomain } from "@/lib/i18n/localizeContent";
 export default function DomainsPage() {
   const { t, locale } = useLocale();
   const [domains, setDomains] = useState<Domain[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.domains().then(setDomains).catch(console.error);
+    setLoading(true);
+    setError(null);
+    api
+      .domains()
+      .then(setDomains)
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
   }, [locale]);
 
   const localized = useMemo(
@@ -27,8 +35,12 @@ export default function DomainsPage() {
         <p className="text-zinc-500 mt-1">{t("domains.pageSubtitle")}</p>
       </header>
 
-      {localized.length === 0 ? (
+      {error ? (
+        <p className="text-amber-200/90 text-sm">{error}</p>
+      ) : loading ? (
         <p className="text-zinc-500 text-sm">{t("common.loading")}</p>
+      ) : localized.length === 0 ? (
+        <p className="text-zinc-500 text-sm">{t("common.connectApiError")}</p>
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
           {localized.map((d, i) => (

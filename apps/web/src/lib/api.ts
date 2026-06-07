@@ -5,10 +5,11 @@ const API_OFFLINE_MSG =
 
 function getApiUrl(path: string): string {
   if (typeof window !== "undefined") {
-    const base =
-      process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ??
-      "http://127.0.0.1:4000";
-    return `${base}/api${path}`;
+    const publicBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+    if (publicBase) return `${publicBase}/api${path}`;
+    // Production (Render): browser → same-origin Next proxy → INTERNAL_API_URL
+    if (process.env.NODE_ENV === "production") return `/api${path}`;
+    return `http://127.0.0.1:4000/api${path}`;
   }
   const base = process.env.INTERNAL_API_URL ?? "http://127.0.0.1:4000";
   return `${base}/api${path}`;
@@ -56,14 +57,16 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
 
 /** Ping Express — use on pages to show API-offline banner */
 export async function checkApiHealth(): Promise<boolean> {
-  const base =
-    (typeof window !== "undefined"
-      ? process.env.NEXT_PUBLIC_API_URL
-      : process.env.INTERNAL_API_URL) ?? "http://127.0.0.1:4000";
   try {
-    const res = await fetch(`${base.replace(/\/$/, "")}/health`, {
-      cache: "no-store",
-    });
+    const url =
+      typeof window !== "undefined"
+        ? process.env.NEXT_PUBLIC_API_URL
+          ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/health`
+          : process.env.NODE_ENV === "production"
+            ? "/api/dashboard"
+            : "http://127.0.0.1:4000/health"
+        : `${(process.env.INTERNAL_API_URL ?? "http://127.0.0.1:4000").replace(/\/$/, "")}/health`;
+    const res = await fetch(url, { cache: "no-store" });
     return res.ok;
   } catch {
     return false;
