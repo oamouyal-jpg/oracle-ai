@@ -214,6 +214,7 @@ model AlignmentSnapshot {
   patterns            Json     @default("[]")
   recommendations     Json     @default("[]")
   aiAssessment        String?
+  aiPlan              Json?
   createdAt           DateTime @default(now())
 
   @@unique([userId, date])

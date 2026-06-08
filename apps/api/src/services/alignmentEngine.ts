@@ -4,6 +4,54 @@ import { asStringArray } from "../lib/arrays.js";
 import { createChatCompletion } from "../lib/openai.js";
 import { localeAiInstruction, type AppLocale } from "../lib/locale.js";
 
+export type AlignmentAiPlan = {
+  personalAnalysis: string;
+  progressActions: string[];
+  selfDevelopment: string[];
+  structuralActions: string[];
+};
+
+const ALIGNMENT_AI_PROMPT = `You are Oracle Life Alignment Engine. Core question: "Is the user's life genuinely moving forward?"
+NOT just task completion. Evaluate alignment, drift, overload, meaningful progress, execution consistency, emotional stability.
+Detect friction: repeated delays, abandoned missions, planning without execution, emotional avoidance, overcommitment.
+Return JSON: {
+  alignmentScore, driftScore, overloadScore, meaningfulProgress, executionConsistency, emotionalStability (all 0-100),
+  frictionAreas (string[]), patterns (string[]), recommendations (string[]),
+  aiAssessment (short summary paragraph), isLifeMovingForward (boolean),
+  aiPlan: {
+    personalAnalysis (2-3 sentences: honest, specific read of THIS user's situation — patterns, strengths, blind spots),
+    progressActions (string[3]: concrete mission/task moves for this week),
+    selfDevelopment (string[3]: emotional regulation, habits, mindset shifts tailored to user),
+    structuralActions (string[3]: systems, routines, boundaries, admin structure to reduce chaos)
+  }
+}
+Be specific to the user's missions, tasks, and reflections — not generic advice.`;
+
+function parseAiPlan(data: Record<string, unknown>): AlignmentAiPlan {
+  const plan = (data.aiPlan ?? {}) as Record<string, unknown>;
+  const progressActions = asStringArray(plan.progressActions);
+  const selfDevelopment = asStringArray(plan.selfDevelopment);
+  const structuralActions = asStringArray(plan.structuralActions);
+  const recommendations = asStringArray(data.recommendations);
+  return {
+    personalAnalysis: String(
+      plan.personalAnalysis ?? data.aiAssessment ?? ""
+    ),
+    progressActions:
+      progressActions.length > 0
+        ? progressActions
+        : recommendations.slice(0, 3),
+    selfDevelopment:
+      selfDevelopment.length > 0
+        ? selfDevelopment
+        : asStringArray(data.patterns).slice(0, 3),
+    structuralActions:
+      structuralActions.length > 0
+        ? structuralActions
+        : asStringArray(data.frictionAreas).slice(0, 3),
+  };
+}
+
 function startOfDay(d = new Date()) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -245,15 +293,7 @@ export async function computeLifeAlignment(userId: string, locale: AppLocale = "
     messages: [
       {
         role: "system",
-        content: `You are Oracle Life Alignment Engine. Core question: "Is the user's life genuinely moving forward?"
-NOT just task completion. Evaluate alignment, drift, overload, meaningful progress, execution consistency, emotional stability.
-Detect friction: repeated delays, abandoned missions, planning without execution, emotional avoidance, overcommitment.
-Return JSON: {
-  alignmentScore, driftScore, overloadScore, meaningfulProgress, executionConsistency, emotionalStability (all 0-100),
-  frictionAreas (string[]), patterns (string[]), recommendations (string[]),
-  aiAssessment (paragraph), isLifeMovingForward (boolean)
-}
-${localeAiInstruction(locale)}`,
+        content: `${ALIGNMENT_AI_PROMPT}\n${localeAiInstruction(locale)}`,
       },
       {
         role: "user",
@@ -263,10 +303,12 @@ ${localeAiInstruction(locale)}`,
   });
 
   if (!alignmentResponse) {
-    alignmentData = mockAlignment(ctx, avgMomentum, overloadScore);
+    alignmentData = mockAlignment(ctx, avgMomentum, overloadScore, locale);
   } else {
     alignmentData = JSON.parse(alignmentResponse.choices[0]?.message?.content ?? "{}");
   }
+
+  const aiPlan = parseAiPlan(alignmentData);
 
   const snapshot = await prisma.alignmentSnapshot.upsert({
     where: { userId_date: { userId, date: today } },
@@ -283,6 +325,7 @@ ${localeAiInstruction(locale)}`,
       patterns: asStringArray(alignmentData.patterns),
       recommendations: asStringArray(alignmentData.recommendations),
       aiAssessment: String(alignmentData.aiAssessment ?? ""),
+      aiPlan: aiPlan as Prisma.InputJsonValue,
     },
     update: {
       alignmentScore: Number(alignmentData.alignmentScore) || 55,
@@ -295,6 +338,7 @@ ${localeAiInstruction(locale)}`,
       patterns: asStringArray(alignmentData.patterns),
       recommendations: asStringArray(alignmentData.recommendations),
       aiAssessment: String(alignmentData.aiAssessment ?? ""),
+      aiPlan: aiPlan as Prisma.InputJsonValue,
     },
   });
 
@@ -304,16 +348,19 @@ ${localeAiInstruction(locale)}`,
     }).catch(() => {});
   }
 
-  return { snapshot, ...alignmentData };
+  return { snapshot, aiPlan, ...alignmentData };
 }
 
-export async function getAlignmentDashboard(userId: string) {
+export async function getAlignmentDashboard(userId: string, locale: AppLocale = "en") {
   const today = startOfDay();
   let snapshot = await prisma.alignmentSnapshot.findFirst({
     where: { userId, date: { gte: today } },
   });
   if (!snapshot) {
-    const result = await computeLifeAlignment(userId);
+    const result = await computeLifeAlignment(userId, locale);
+    snapshot = result.snapshot;
+  } else if (!snapshot.aiPlan) {
+    const result = await computeLifeAlignment(userId, locale);
     snapshot = result.snapshot;
   }
 
@@ -365,11 +412,20 @@ export async function getAlignmentDashboard(userId: string) {
     take: 14,
   });
 
+  const aiPlan = parseAiPlan({
+    aiPlan: snapshot.aiPlan,
+    aiAssessment: snapshot.aiAssessment,
+    recommendations: snapshot.recommendations,
+    patterns: snapshot.patterns,
+    frictionAreas: snapshot.frictionAreas,
+  });
+
   const alignment = {
     ...snapshot,
     frictionAreas: asStringArray(snapshot.frictionAreas),
     patterns: asStringArray(snapshot.patterns),
     recommendations: asStringArray(snapshot.recommendations),
+    aiPlan,
   };
 
   return {
@@ -420,8 +476,136 @@ function mockReflectionExtract(content: string) {
 function mockAlignment(
   ctx: Awaited<ReturnType<typeof buildUserContext>>,
   avgMomentum: number,
-  overloadScore: number
+  overloadScore: number,
+  locale: AppLocale = "en"
 ) {
+  const topMission = ctx.missions[0]?.title ?? "your top mission";
+  const overloaded = overloadScore > 60;
+
+  const copy: Record<
+    AppLocale,
+    {
+      frictionAreas: string[];
+      patterns: string[];
+      recommendations: string[];
+      aiAssessment: string;
+      aiPlan: AlignmentAiPlan;
+    }
+  > = {
+    en: {
+      frictionAreas: overloaded
+        ? ["Too many active missions", "Cognitive overload"]
+        : ctx.taskStats.skipped > 2
+          ? ["Repeated task avoidance"]
+          : [],
+      patterns: [
+        "Productivity improves after structured mornings",
+        "Financial tasks avoided after emotional conflict",
+      ],
+      recommendations: [
+        overloaded
+          ? "Reduce active missions. You are overloaded."
+          : "Focus on practical structure today, not emotional rumination.",
+        "One high-leverage action beats ten low-value tasks.",
+      ],
+      aiAssessment:
+        "Life alignment is moderate. Checkbox completion alone does not indicate forward movement. Focus on reducing uncertainty in your highest-impact mission while protecting nervous system stability.",
+      aiPlan: {
+        personalAnalysis: `You are carrying ${ctx.missions.filter((m) => m.status === "ACTIVE").length} active missions with ${ctx.taskStats.pending} open tasks. Momentum is ${Math.round(avgMomentum)}% — progress exists but emotional load and scattered focus may be diluting real forward movement. Your highest-leverage zone is ${topMission}.`,
+        progressActions: [
+          `Complete one concrete step on "${topMission}" today (30 min max)`,
+          "Clear the oldest delayed task — even partially counts",
+          "Pause or archive one low-priority mission to reduce cognitive load",
+        ],
+        selfDevelopment: [
+          "Start tomorrow with a 10-minute planning block before reactive mode",
+          "Name one emotion before making a high-stakes decision today",
+          "Protect one recovery window (walk, breath work, or silence)",
+        ],
+        structuralActions: [
+          "Batch financial/admin tasks into a single weekly 45-min block",
+          "Cap active missions at 3 until momentum score rises above 60",
+          "End each day with a 5-minute debrief: what moved forward vs. what was noise",
+        ],
+      },
+    },
+    he: {
+      frictionAreas: overloaded
+        ? ["יותר מדי משימות פעילות", "עומס קוגניטיבי"]
+        : ctx.taskStats.skipped > 2
+          ? ["הימנעות חוזרת ממשימות"]
+          : [],
+      patterns: [
+        "פרודוקטיביות משתפרת אחרי בוקר מובנה",
+        "משימות כספיות נדחות אחרי קונפליקט רגשי",
+      ],
+      recommendations: [
+        overloaded
+          ? "הפחת משימות פעילות. יש עומס יתר."
+          : "התמקד היום במבנה מעשי, לא בעיבוד רגשי ממושך.",
+        "פעולה אחת בעלת מינוף גבוה עדיפה על עשר משימות חלשות.",
+      ],
+      aiAssessment:
+        "יישור החיים בינוני. סימון משימות בלבד לא מעיד על תנועה קדימה. התמקד בהפחתת אי-ודאות במשימה בעלת ההשפעה הגבוהה ביותר תוך שמירה על יציבות מערכת העצבים.",
+      aiPlan: {
+        personalAnalysis: `אתה נושא ${ctx.missions.filter((m) => m.status === "ACTIVE").length} משימות פעילות עם ${ctx.taskStats.pending} משימות פתוחות. המומנטום ב-${Math.round(avgMomentum)}% — יש התקדמות, אך עומס רגשי ופיזור עלולים לדלל תנועה אמיתית קדימה. אזור המינוף הגבוה שלך: ${topMission}.`,
+        progressActions: [
+          `השלם צעד קונקרטי אחד ב-"${topMission}" היום (מקסימום 30 דקות)`,
+          "נקה את המשימה הישנה ביותר שנדחתה — גם חלקית נספרת",
+          "השהה או העבר לארכיון משימה אחת בעדיפות נמוכה להפחתת עומס",
+        ],
+        selfDevelopment: [
+          "התחל מחר בבלוק תכנון של 10 דקות לפני מצב ריאקטיבי",
+          "זהה רגש אחד לפני קבלת החלטה משמעותית היום",
+          "שמור חלון התאוששות אחד (הליכה, נשימה או שקט)",
+        ],
+        structuralActions: [
+          "אגד משימות כספיות/אדמין לבלוק שבועי אחד של 45 דקות",
+          "הגבל ל-3 משימות פעילות עד שציון המומנטום עולה מעל 60",
+          "סיים כל יום בסיכום 5 דקות: מה התקדם לעומת מה היה רעש",
+        ],
+      },
+    },
+    fr: {
+      frictionAreas: overloaded
+        ? ["Trop de missions actives", "Surcharge cognitive"]
+        : ctx.taskStats.skipped > 2
+          ? ["Évitement répété des tâches"]
+          : [],
+      patterns: [
+        "La productivité s'améliore après des matinées structurées",
+        "Tâches financières évitées après conflit émotionnel",
+      ],
+      recommendations: [
+        overloaded
+          ? "Réduisez les missions actives. Vous êtes surchargé."
+          : "Concentrez-vous sur la structure pratique aujourd'hui.",
+        "Une action à fort levier vaut mieux que dix tâches faibles.",
+      ],
+      aiAssessment:
+        "L'alignement de vie est modéré. Cocher des cases ne suffit pas. Réduisez l'incertitude sur votre mission la plus impactante tout en protégeant votre stabilité nerveuse.",
+      aiPlan: {
+        personalAnalysis: `Vous portez ${ctx.missions.filter((m) => m.status === "ACTIVE").length} missions actives avec ${ctx.taskStats.pending} tâches ouvertes. Momentum à ${Math.round(avgMomentum)}% — du progrès existe, mais la charge émotionnelle dilue le mouvement réel. Zone à fort levier : ${topMission}.`,
+        progressActions: [
+          `Complétez une étape concrète sur « ${topMission} » aujourd'hui (30 min max)`,
+          "Traitez la plus ancienne tâche retardée — partiellement compte",
+          "Mettez en pause une mission basse priorité pour réduire la charge",
+        ],
+        selfDevelopment: [
+          "Commencez demain par 10 min de planification avant le mode réactif",
+          "Nommez une émotion avant une décision importante aujourd'hui",
+          "Protégez une fenêtre de récupération (marche, respiration ou silence)",
+        ],
+        structuralActions: [
+          "Regroupez les tâches admin/financières en un bloc hebdo de 45 min",
+          "Limitez à 3 missions actives jusqu'à momentum > 60",
+          "Terminez chaque journée par un debrief de 5 min : progrès vs bruit",
+        ],
+      },
+    },
+  };
+
+  const c = copy[locale] ?? copy.en;
   return {
     alignmentScore: Math.round(avgMomentum * 0.6 + 25),
     driftScore: ctx.missions.length > 5 ? 65 : 35,
@@ -429,24 +613,11 @@ function mockAlignment(
     meaningfulProgress: Math.round(avgMomentum),
     executionConsistency: 100 - Math.min(80, ctx.taskStats.skipped * 15),
     emotionalStability: 58,
-    frictionAreas:
-      overloadScore > 60
-        ? ["Too many active missions", "Cognitive overload"]
-        : ctx.taskStats.skipped > 2
-          ? ["Repeated task avoidance"]
-          : [],
-    patterns: [
-      "Productivity improves after structured mornings",
-      "Financial tasks avoided after emotional conflict",
-    ],
-    recommendations: [
-      overloadScore > 60
-        ? "Reduce active missions. You are overloaded."
-        : "Focus on practical structure today, not emotional rumination.",
-      "One high-leverage action beats ten low-value tasks.",
-    ],
-    aiAssessment:
-      "Life alignment is moderate. Checkbox completion alone does not indicate forward movement. Focus on reducing uncertainty in your highest-impact mission while protecting nervous system stability.",
+    frictionAreas: c.frictionAreas,
+    patterns: c.patterns,
+    recommendations: c.recommendations,
+    aiAssessment: c.aiAssessment,
+    aiPlan: c.aiPlan,
     isLifeMovingForward: avgMomentum >= 50,
   };
 }

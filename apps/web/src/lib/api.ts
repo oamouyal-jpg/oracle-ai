@@ -139,6 +139,8 @@ export const api = {
   tradingWeeklyReport: (missionId: string) =>
     fetchApi<WeeklyTradingReport>(`/missions/${missionId}/trading/weekly`),
   alignment: () => fetchApi<AlignmentDashboard>("/alignment"),
+  recalculateAlignment: () =>
+    fetchApi<AlignmentDashboard>("/alignment/recalculate", { method: "POST" }),
   submitReflection: (content: string, mood?: number, energy?: number) =>
     fetchApi<{ reflection: Reflection; alignment: AlignmentSnapshot }>("/alignment/reflect", {
       method: "POST",
@@ -303,6 +305,13 @@ export interface Task {
   missionId?: string | null;
 }
 
+export interface AlignmentAiPlan {
+  personalAnalysis: string;
+  progressActions: string[];
+  selfDevelopment: string[];
+  structuralActions: string[];
+}
+
 export interface AlignmentSnapshot {
   alignmentScore: number;
   driftScore: number;
@@ -314,6 +323,7 @@ export interface AlignmentSnapshot {
   patterns: string[];
   recommendations: string[];
   aiAssessment: string | null;
+  aiPlan?: AlignmentAiPlan | null;
 }
 
 export interface Reflection {

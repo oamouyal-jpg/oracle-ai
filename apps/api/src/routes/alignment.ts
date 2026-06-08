@@ -14,15 +14,18 @@ export const alignmentRouter = Router();
 
 alignmentRouter.get("/", async (req, res) => {
   const userId = await resolveUserId(req.headers["x-user-id"] as string);
-  const data = await getAlignmentDashboard(userId);
+  const locale = requestLocale(req);
+  const data = await getAlignmentDashboard(userId, locale);
   res.json(data);
 });
 
 alignmentRouter.post("/recalculate", async (req, res) => {
   const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const locale = requestLocale(req);
   await recalculateMissionMomentums(userId);
-  const alignment = await computeLifeAlignment(userId);
-  res.json(alignment);
+  const alignment = await computeLifeAlignment(userId, locale);
+  const data = await getAlignmentDashboard(userId, locale);
+  res.json(data);
 });
 
 alignmentRouter.post("/reflect", async (req, res) => {
