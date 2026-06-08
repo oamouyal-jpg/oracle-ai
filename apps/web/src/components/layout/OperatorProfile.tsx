@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { User } from "lucide-react";
 import { api, type UserProfile } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { MorningNotificationSettings } from "@/components/notifications/MorningNotificationSettings";
 
 type OperatorProfileProps = {
   className?: string;
@@ -107,6 +108,7 @@ export function OperatorProfile({ className, compact }: OperatorProfileProps) {
           ) : (
             <p className="text-[10px] text-zinc-600 italic">{t("profile.noPatternsYet")}</p>
           )}
+          <MorningNotificationSettings />
         </>
       )}
     </div>

@@ -50,6 +50,15 @@ const en = {
     learningHint: "Oracle learns from reflections, alignment, chat, and debriefs.",
     noPatternsYet: "No patterns yet — keep using Oracle and it will personalize.",
   },
+  notifications: {
+    morningTitle: "Morning notifications",
+    morningHint: "Get a daily nudge with your #1 task when you open Oracle after your chosen time. Add Oracle to your home screen for the best phone experience.",
+    enableMorning: "Morning briefing alert",
+    timeLabel: "Time",
+    enabled: "Morning notifications enabled",
+    denied: "Notifications blocked — enable them in your phone settings.",
+    unsupported: "Notifications are not supported in this browser.",
+  },
   mobile: {
     menu: "Menu",
     more: "More",
@@ -472,6 +481,15 @@ const he: Messages = {
     learningHint: "Oracle לומד מהרפלקציות, יישור, צ'אט ודיבריפים.",
     noPatternsYet: "עדיין אין דפוסים — המשך להשתמש ו-Oracle יתאים אישית.",
   },
+  notifications: {
+    morningTitle: "התראות בוקר",
+    morningHint: "קבל תזכורת יומית עם משימה #1 כשתפתח את Oracle אחרי השעה שבחרת. הוסף ל-Oracle למסך הבית לחוויית אפליקציה.",
+    enableMorning: "התראת תדרוך בוקר",
+    timeLabel: "שעה",
+    enabled: "התראות בוקר הופעלו",
+    denied: "התראות חסומות — אפשר אותן בהגדרות הטלפון.",
+    unsupported: "התראות לא נתמכות בדפדפן זה.",
+  },
   mobile: {
     menu: "תפריט",
     more: "עוד",
@@ -888,6 +906,15 @@ const fr: Messages = {
     saved: "Enregistré",
     learningHint: "Oracle apprend via réflexions, alignement, chat et bilans.",
     noPatternsYet: "Pas encore de schémas — continuez et Oracle s'adaptera.",
+  },
+  notifications: {
+    morningTitle: "Notifications du matin",
+    morningHint: "Recevez un rappel quotidien avec votre tâche #1 en ouvrant Oracle après l'heure choisie. Ajoutez Oracle à l'écran d'accueil pour une meilleure expérience mobile.",
+    enableMorning: "Alerte briefing matinal",
+    timeLabel: "Heure",
+    enabled: "Notifications du matin activées",
+    denied: "Notifications bloquées — activez-les dans les réglages du téléphone.",
+    unsupported: "Notifications non prises en charge sur ce navigateur.",
   },
   mobile: {
     menu: "Menu",

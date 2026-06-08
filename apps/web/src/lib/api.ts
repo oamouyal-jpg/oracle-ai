@@ -173,7 +173,16 @@ export const api = {
   userProfile: () => fetchApi<UserProfile>("/user/profile"),
   updateProfile: (data: { name?: string; energyLevel?: number }) =>
     fetchApi<UserProfile>("/user/profile", { method: "PATCH", body: JSON.stringify(data) }),
+  morningNotification: () => fetchApi<MorningNotificationPayload>("/notifications/morning"),
 };
+
+export interface MorningNotificationPayload {
+  title: string;
+  body: string;
+  url: string;
+  topTaskTitle: string | null;
+  focusRecommendation: string | null;
+}
 
 export interface Domain {
   id: string;

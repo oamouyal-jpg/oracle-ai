@@ -6,12 +6,14 @@ import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 import { Sidebar } from "./Sidebar";
 import { MobileHeader } from "./MobileHeader";
 import { MobileNav } from "./MobileNav";
+import { MorningNotificationRunner } from "@/components/notifications/MorningNotificationRunner";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <LocaleProvider>
+      <MorningNotificationRunner />
       <motion.div className="relative min-h-screen hud-grid">
         <Sidebar />
         <MobileHeader onOpenMenu={() => setMenuOpen(true)} />
