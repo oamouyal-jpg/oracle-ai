@@ -224,6 +224,10 @@ const en = {
     currentTask: "Current task",
     currentBlock: "Current block",
     modeLabel: "Execution Mode",
+    oraclePriority: "Oracle priority #1",
+    startOracleTask: "Start this task",
+    orPickMission: "Or pick a mission",
+    oracleModeLabel: "Oracle-assisted execution",
   },
   alignment: {
     title: "Life Alignment",
@@ -640,6 +644,10 @@ const he: Messages = {
     currentTask: "משימה נוכחית",
     currentBlock: "בלוק נוכחי",
     modeLabel: "מצב ביצוע",
+    oraclePriority: "עדיפות Oracle #1",
+    startOracleTask: "התחל משימה זו",
+    orPickMission: "או בחר משימה",
+    oracleModeLabel: "ביצוע בליווי Oracle",
   },
   alignment: {
     title: "יישור חיים",
@@ -1055,6 +1063,10 @@ const fr: Messages = {
     currentTask: "Tâche en cours",
     currentBlock: "Bloc en cours",
     modeLabel: "Mode exécution",
+    oraclePriority: "Priorité Oracle n°1",
+    startOracleTask: "Commencer cette tâche",
+    orPickMission: "Ou choisir une mission",
+    oracleModeLabel: "Exécution assistée par Oracle",
   },
   alignment: {
     title: "Alignement de vie",
