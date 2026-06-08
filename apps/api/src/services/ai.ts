@@ -1,21 +1,16 @@
 import { prisma } from "../lib/prisma.js";
 import { asStringArray } from "../lib/arrays.js";
 import { createChatCompletion } from "../lib/openai.js";
-import { localeAiInstruction, type AppLocale } from "../lib/locale.js";
-
-const SYSTEM_PERSONA = `You are Oracle — an AI life strategist and personal operating system.
-You are calm, intelligent, emotionally aware, and strategically sharp.
-You help the user organize chaos, reduce overwhelm, maintain momentum, and execute on what matters.
-You are NOT cheesy, corporate, or judgmental. You challenge avoidance gently but directly.
-You prioritize highest-leverage actions based on impact, emotional state, urgency, and long-term alignment.
-Speak concisely. Use strategic language. Be a wise coach, not a passive chatbot.`;
-
-function persona(locale: AppLocale = "en") {
-  return `${SYSTEM_PERSONA}\n\n${localeAiInstruction(locale)}`;
-}
+import type { AppLocale } from "../lib/locale.js";
+import {
+  buildOperatorLearningContext,
+  buildOracleSystemPrompt,
+} from "../lib/operatorLearning.js";
+import { buildOfflineChatReply, parseChatContext } from "../lib/offlineStrategist.js";
 
 async function buildContext(userId: string): Promise<string> {
-  const [domains, missions, tasks, memories, lastDebrief] = await Promise.all([
+  const [learning, domains, missions, tasks, lastDebrief] = await Promise.all([
+    buildOperatorLearningContext(userId),
     prisma.domain.findMany({ where: { userId }, take: 12 }),
     prisma.mission.findMany({
       where: { userId, status: "ACTIVE" },
@@ -28,11 +23,6 @@ async function buildContext(userId: string): Promise<string> {
       orderBy: { priority: "desc" },
       take: 15,
     }),
-    prisma.aIMemory.findMany({
-      where: { userId },
-      orderBy: { importance: "desc" },
-      take: 10,
-    }),
     prisma.nightDebrief.findFirst({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -41,6 +31,7 @@ async function buildContext(userId: string): Promise<string> {
 
   return JSON.stringify(
     {
+      operator: learning,
       domains: domains.map((d) => ({
         name: d.name,
         state: d.currentState,
@@ -59,7 +50,6 @@ async function buildContext(userId: string): Promise<string> {
         priority: t.priority,
         due: t.dueDate,
       })),
-      memories: memories.map((m) => m.content),
       lastDebriefInsight: lastDebrief?.aiAssessment,
       tomorrowPlan: lastDebrief?.tomorrowPlan,
     },
@@ -68,19 +58,61 @@ async function buildContext(userId: string): Promise<string> {
   );
 }
 
+export type ChatOracleResult = {
+  reply: string;
+  source: "openai" | "offline";
+  offlineReason?: string;
+};
+
 export async function chatWithOracle(
   userId: string,
   message: string,
   history: { role: string; content: string }[] = [],
   locale: AppLocale = "en"
-): Promise<string> {
-  const context = await buildContext(userId);
+): Promise<ChatOracleResult> {
+  const [context, learning] = await Promise.all([
+    buildContext(userId),
+    buildOperatorLearningContext(userId),
+  ]);
+  const parsedContext = parseChatContext(context);
+  const systemPrompt = buildOracleSystemPrompt(
+    learning.operatorName,
+    learning,
+    locale,
+    `CHAT RULES:
+- Answer the user's EXACT question first — in the opening sentence.
+- Do not give the same generic "highest leverage action" speech every time.
+- Never repeat phrasing from your previous replies in this thread.
+- Use life data only when it helps answer what they asked.
+- If the question is narrow, give a narrow answer.`
+  );
 
-  const response = await createChatCompletion({
+  const liveData = JSON.stringify(
+    {
+      domains: parsedContext.domains,
+      activeMissions: parsedContext.activeMissions,
+      pendingTasks: parsedContext.pendingTasks,
+      lastDebriefInsight: parsedContext.lastDebriefInsight,
+    },
+    null,
+    2
+  );
+
+  const aiResult = await createChatCompletion({
     model: "gpt-4o-mini",
-    temperature: 0.7,
+    temperature: 0.9,
+    presence_penalty: 0.35,
+    frequency_penalty: 0.25,
     messages: [
-      { role: "system", content: `${persona(locale)}\n\nUser context:\n${context}` },
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: `Here is my current life data (reference only when useful):\n${liveData}`,
+      },
+      {
+        role: "assistant",
+        content: `Understood, ${learning.operatorName}. I'll answer each question specifically.`,
+      },
       ...history.slice(-12).map((m) => ({
         role: m.role as "user" | "assistant" | "system",
         content: m.content,
@@ -89,14 +121,28 @@ export async function chatWithOracle(
     ],
   });
 
-  if (!response) {
-    return mockStrategicReply(message, context);
+  if (!aiResult.ok) {
+    return {
+      reply: buildOfflineChatReply({
+        name: learning.operatorName,
+        message,
+        patterns: learning.strategicProfile.patterns,
+        profile: learning.strategicProfile,
+        context: parsedContext,
+        history,
+        locale,
+      }),
+      source: "offline",
+      offlineReason: aiResult.reason,
+    };
   }
 
-  return (
-    response.choices[0]?.message?.content ??
-    "I'm processing your situation. Try again in a moment."
-  );
+  return {
+    reply:
+      aiResult.completion.choices[0]?.message?.content ??
+      "I'm processing your situation. Try again in a moment.",
+    source: "openai",
+  };
 }
 
 export async function generateDailyBriefing(
@@ -111,30 +157,39 @@ export async function generateDailyBriefing(
   strategicGuidance: string;
   fullContent: string;
 }> {
-  const context = await buildContext(userId);
+  const [context, learning] = await Promise.all([
+    buildContext(userId),
+    buildOperatorLearningContext(userId),
+  ]);
+  const systemPrompt = buildOracleSystemPrompt(
+    learning.operatorName,
+    learning,
+    locale,
+    `Generate a morning strategic briefing as JSON with keys: topPriorities (string[]), emotionalObservation, focusRecommendation, reminders (string[]), missionProgress, strategicGuidance, fullContent (narrative paragraph combining all). Address ${learning.operatorName} by name in fullContent.`
+  );
 
-  const response = await createChatCompletion({
+  const aiResult = await createChatCompletion({
     model: "gpt-4o-mini",
     temperature: 0.6,
     response_format: { type: "json_object" },
     messages: [
       {
         role: "system",
-        content: `${persona(locale)}\nGenerate a morning strategic briefing as JSON with keys: topPriorities (string[]), emotionalObservation, focusRecommendation, reminders (string[]), missionProgress, strategicGuidance, fullContent (narrative paragraph combining all).`,
+        content: systemPrompt,
       },
       { role: "user", content: `Context:\n${context}` },
     ],
   });
 
-  if (!response) {
-    return mockDailyBriefing();
+  if (!aiResult.ok) {
+    return mockDailyBriefing(learning.operatorName);
   }
 
-  const raw = response.choices[0]?.message?.content ?? "{}";
+  const raw = aiResult.completion.choices[0]?.message?.content ?? "{}";
   try {
     return JSON.parse(raw) as ReturnType<typeof generateDailyBriefing> extends Promise<infer T> ? T : never;
   } catch {
-    return mockDailyBriefing();
+    return mockDailyBriefing(learning.operatorName);
   }
 }
 
@@ -160,16 +215,25 @@ export async function analyzeNightDebrief(
   };
   patternDetected: string;
 }> {
-  const context = await buildContext(userId);
+  const [context, learning] = await Promise.all([
+    buildContext(userId),
+    buildOperatorLearningContext(userId),
+  ]);
+  const systemPrompt = buildOracleSystemPrompt(
+    learning.operatorName,
+    learning,
+    locale,
+    "Analyze the nightly debrief. Return JSON: focusScore, emotionalScore, executionScore, alignmentScore, energyScore (0-100 each), aiAssessment (strategic paragraph addressing the operator by name), behavioralNotes (string[]), tomorrowPlan { topPriorities, missionCritical, emotionalWarnings, focusRecommendation, recoverySuggestions, executionStrategy }, patternDetected."
+  );
 
-  const response = await createChatCompletion({
+  const aiResult = await createChatCompletion({
     model: "gpt-4o-mini",
     temperature: 0.65,
     response_format: { type: "json_object" },
     messages: [
       {
         role: "system",
-        content: `${persona(locale)}\nAnalyze the nightly debrief. Return JSON: focusScore, emotionalScore, executionScore, alignmentScore, energyScore (0-100 each), aiAssessment (strategic paragraph), behavioralNotes (string[]), tomorrowPlan { topPriorities, missionCritical, emotionalWarnings, focusRecommendation, recoverySuggestions, executionStrategy }, patternDetected.`,
+        content: systemPrompt,
       },
       {
         role: "user",
@@ -178,11 +242,11 @@ export async function analyzeNightDebrief(
     ],
   });
 
-  if (!response) {
+  if (!aiResult.ok) {
     return mockNightAnalysis(responses);
   }
 
-  const raw = response.choices[0]?.message?.content ?? "{}";
+  const raw = aiResult.completion.choices[0]?.message?.content ?? "{}";
   try {
     return JSON.parse(raw);
   } catch {
@@ -211,7 +275,7 @@ export async function prioritizeTasks(userId: string): Promise<{
     ],
   };
 
-  const response = await createChatCompletion({
+  const aiResult = await createChatCompletion({
     model: "gpt-4o-mini",
     temperature: 0.5,
     response_format: { type: "json_object" },
@@ -224,11 +288,11 @@ export async function prioritizeTasks(userId: string): Promise<{
     ],
   });
 
-  if (!response) {
+  if (!aiResult.ok) {
     return offlineFallback;
   }
 
-  const raw = response.choices[0]?.message?.content ?? "{}";
+  const raw = aiResult.completion.choices[0]?.message?.content ?? "{}";
   try {
     return JSON.parse(raw);
   } catch {
@@ -240,18 +304,7 @@ export async function prioritizeTasks(userId: string): Promise<{
   }
 }
 
-function mockStrategicReply(message: string, _context: string): string {
-  const lower = message.toLowerCase();
-  if (lower.includes("overwhelm") || lower.includes("stress")) {
-    return `You're carrying too much cognitive load. Reduce active missions to three maximum. Your highest leverage right now is creating structure around one uncertain area — not solving everything at once. What's the single decision that would reduce the most anxiety today?`;
-  }
-  if (lower.includes("priority") || lower.includes("focus")) {
-    return `Based on your active missions, prioritize practical execution over emotional rumination today. Your relocation and financial clarity missions need concrete next steps — even 20-minute blocks count. Check your Daily Briefing for today's strategic focus.`;
-  }
-  return `I've analyzed your situation. Your pattern shows strong strategic thinking but occasional avoidance on financial and administrative tasks when emotionally taxed. The highest-leverage question: "What one action, if completed today, would reduce uncertainty the most?" Tell me which domain needs clarity and I'll break it into executable steps.`;
-}
-
-function mockDailyBriefing() {
+function mockDailyBriefing(name: string) {
   return {
     topPriorities: [
       "Reduce uncertainty around housing and relocation logistics",
@@ -270,8 +323,7 @@ function mockDailyBriefing() {
       "Relocation mission at 35%. Business build at 52%. Relationship repair needs intentional communication.",
     strategicGuidance:
       "Your biggest priority today is reducing uncertainty around the house. Avoid emotionally driven decisions. Focus on practical structure. One completed administrative task will lower cognitive load significantly.",
-    fullContent:
-      "Good morning, Operator. Your biggest priority today is reducing uncertainty around the house. Avoid emotionally driven decisions. Focus on practical structure. Complete one relocation admin task and one Agentis execution block. Protect your nervous system with movement and boundaries on mental bandwidth drains.",
+    fullContent: `Good morning, ${name}. Your biggest priority today is reducing uncertainty around the house. Avoid emotionally driven decisions. Focus on practical structure. Complete one relocation admin task and one Agentis execution block. Protect your nervous system with movement and boundaries on mental bandwidth drains.`,
   };
 }
 

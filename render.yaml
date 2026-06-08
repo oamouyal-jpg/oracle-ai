@@ -1,22 +1,25 @@
-# Render Blueprint — deploy API from apps/api
-# Dashboard: New → Blueprint → connect this repo, or create a Web Service manually.
+# Render Blueprint — oracle-api + oracle-ai (frontend)
 #
-# After deploy, set on the API service (if not using a linked Postgres):
-#   OPENAI_API_KEY, DATABASE_URL, CORS_ORIGIN (your Vercel URL)
+# API env (set in dashboard): OPENAI_API_KEY, DATABASE_URL, CORS_ORIGIN
+# Web env: NEXT_PUBLIC_API_URL=https://YOUR-oracle-api.onrender.com
+#          (browser calls API directly — saves memory vs Next proxy)
 
 services:
   - type: web
     name: oracle-api
     runtime: node
     rootDir: apps/api
+    plan: free
     buildCommand: npm install && npx prisma generate && npm run build
-    startCommand: npx prisma db push && npx tsx prisma/seed.ts && npm run start
+    startCommand: npx prisma db push && npm run start
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
         value: "20"
       - key: PORT
         value: "4000"
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=460"
       - key: CORS_ORIGIN
         sync: false
       - key: DATABASE_URL
@@ -25,3 +28,19 @@ services:
         sync: false
       - key: DEV_USER_ID
         value: dev-user
+
+  - type: web
+    name: oracle-ai
+    runtime: node
+    rootDir: .
+    plan: free
+    buildCommand: npm install && npm run build -w @oracle/web
+    startCommand: node apps/web/scripts/render-start.mjs
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=460"
+      - key: NEXT_PUBLIC_API_URL
+        sync: false

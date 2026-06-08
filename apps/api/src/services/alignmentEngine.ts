@@ -3,6 +3,12 @@ import { prisma } from "../lib/prisma.js";
 import { asStringArray } from "../lib/arrays.js";
 import { createChatCompletion } from "../lib/openai.js";
 import { localeAiInstruction, type AppLocale } from "../lib/locale.js";
+import {
+  buildOperatorLearningContext,
+  buildOracleSystemPrompt,
+  rememberInsight,
+  rememberInsights,
+} from "../lib/operatorLearning.js";
 
 export type AlignmentAiPlan = {
   personalAnalysis: string;
@@ -147,7 +153,10 @@ export async function processReflection(
   energy?: number,
   locale: AppLocale = "en"
 ) {
-  const ctx = await buildUserContext(userId);
+  const [ctx, learning] = await Promise.all([
+    buildUserContext(userId),
+    buildOperatorLearningContext(userId),
+  ]);
 
   let extracted: Record<string, unknown>;
   const reflectionResponse = await createChatCompletion({
@@ -157,7 +166,7 @@ export async function processReflection(
     messages: [
       {
         role: "system",
-        content: `You analyze natural-language life reflections. Progress is NOT just task checkboxes.
+        content: `${buildOracleSystemPrompt(learning.operatorName, learning, locale, `Analyze natural-language life reflections. Progress is NOT just task checkboxes.
 Extract JSON: {
   actualProgress (0-100 subjective forward movement today),
   emotionalState (string),
@@ -165,12 +174,11 @@ Extract JSON: {
   momentumSignal (0-100),
   avoidance (string|null),
   alignmentSignal (0-100),
-  aiAnalysis (supportive strategic paragraph),
+  aiAnalysis (supportive strategic paragraph addressing ${learning.operatorName} by name),
   detectedPatterns (string[]),
   frictionAlert (string|null)
 }
-Be conversational, intelligent, non-judgmental. Detect intelligent procrastination and false busyness.
-${localeAiInstruction(locale)}`,
+Be conversational, intelligent, non-judgmental. Detect intelligent procrastination and false busyness.`)}`,
       },
       {
         role: "user",
@@ -188,10 +196,10 @@ ${localeAiInstruction(locale)}`,
     ],
   });
 
-  if (!reflectionResponse) {
+  if (!reflectionResponse.ok) {
     extracted = mockReflectionExtract(content);
   } else {
-    extracted = JSON.parse(reflectionResponse.choices[0]?.message?.content ?? "{}");
+    extracted = JSON.parse(reflectionResponse.completion.choices[0]?.message?.content ?? "{}");
   }
 
   const reflection = await prisma.reflection.create({
@@ -212,20 +220,12 @@ ${localeAiInstruction(locale)}`,
   });
 
   const patterns = asStringArray(extracted.detectedPatterns);
-  for (const p of patterns) {
-    await prisma.aIMemory.create({
-      data: { userId, category: "pattern", content: p, importance: 75 },
-    });
-  }
+  await rememberInsights(
+    userId,
+    patterns.map((p) => ({ content: p, category: "pattern" as const, importance: 75 }))
+  );
   if (extracted.frictionAlert) {
-    await prisma.aIMemory.create({
-      data: {
-        userId,
-        category: "friction",
-        content: String(extracted.frictionAlert),
-        importance: 85,
-      },
-    });
+    await rememberInsight(userId, String(extracted.frictionAlert), "friction", 85);
   }
 
   await recalculateMissionMomentums(userId);
@@ -285,6 +285,8 @@ export async function computeLifeAlignment(userId: string, locale: AppLocale = "
       : 0;
 
   let alignmentData: Record<string, unknown>;
+  const learning = await buildOperatorLearningContext(userId);
+  const operatorName = learning.operatorName;
 
   const alignmentResponse = await createChatCompletion({
     model: "gpt-4o-mini",
@@ -293,7 +295,7 @@ export async function computeLifeAlignment(userId: string, locale: AppLocale = "
     messages: [
       {
         role: "system",
-        content: `${ALIGNMENT_AI_PROMPT}\n${localeAiInstruction(locale)}`,
+        content: buildOracleSystemPrompt(operatorName, learning, locale, ALIGNMENT_AI_PROMPT),
       },
       {
         role: "user",
@@ -302,10 +304,10 @@ export async function computeLifeAlignment(userId: string, locale: AppLocale = "
     ],
   });
 
-  if (!alignmentResponse) {
-    alignmentData = mockAlignment(ctx, avgMomentum, overloadScore, locale);
+  if (!alignmentResponse.ok) {
+    alignmentData = mockAlignment(ctx, avgMomentum, overloadScore, locale, operatorName);
   } else {
-    alignmentData = JSON.parse(alignmentResponse.choices[0]?.message?.content ?? "{}");
+    alignmentData = JSON.parse(alignmentResponse.completion.choices[0]?.message?.content ?? "{}");
   }
 
   const aiPlan = parseAiPlan(alignmentData);
@@ -342,11 +344,22 @@ export async function computeLifeAlignment(userId: string, locale: AppLocale = "
     },
   });
 
-  for (const p of asStringArray(alignmentData.patterns)) {
-    await prisma.aIMemory.create({
-      data: { userId, category: "pattern", content: p, importance: 80 },
-    }).catch(() => {});
-  }
+  await rememberInsights(
+    userId,
+    asStringArray(alignmentData.patterns).map((p) => ({
+      content: p,
+      category: "pattern" as const,
+      importance: 80,
+    }))
+  );
+  await rememberInsights(
+    userId,
+    asStringArray(alignmentData.frictionAreas).map((p) => ({
+      content: p,
+      category: "friction" as const,
+      importance: 78,
+    }))
+  );
 
   return { snapshot, aiPlan, ...alignmentData };
 }
@@ -477,7 +490,8 @@ function mockAlignment(
   ctx: Awaited<ReturnType<typeof buildUserContext>>,
   avgMomentum: number,
   overloadScore: number,
-  locale: AppLocale = "en"
+  locale: AppLocale = "en",
+  operatorName = "Operator"
 ) {
   const topMission = ctx.missions[0]?.title ?? "your top mission";
   const overloaded = overloadScore > 60;
@@ -511,7 +525,7 @@ function mockAlignment(
       aiAssessment:
         "Life alignment is moderate. Checkbox completion alone does not indicate forward movement. Focus on reducing uncertainty in your highest-impact mission while protecting nervous system stability.",
       aiPlan: {
-        personalAnalysis: `You are carrying ${ctx.missions.filter((m) => m.status === "ACTIVE").length} active missions with ${ctx.taskStats.pending} open tasks. Momentum is ${Math.round(avgMomentum)}% — progress exists but emotional load and scattered focus may be diluting real forward movement. Your highest-leverage zone is ${topMission}.`,
+        personalAnalysis: `${operatorName}, you are carrying ${ctx.missions.filter((m) => m.status === "ACTIVE").length} active missions with ${ctx.taskStats.pending} open tasks. Momentum is ${Math.round(avgMomentum)}% — progress exists but emotional load and scattered focus may be diluting real forward movement. Your highest-leverage zone is ${topMission}.`,
         progressActions: [
           `Complete one concrete step on "${topMission}" today (30 min max)`,
           "Clear the oldest delayed task — even partially counts",
@@ -548,7 +562,7 @@ function mockAlignment(
       aiAssessment:
         "יישור החיים בינוני. סימון משימות בלבד לא מעיד על תנועה קדימה. התמקד בהפחתת אי-ודאות במשימה בעלת ההשפעה הגבוהה ביותר תוך שמירה על יציבות מערכת העצבים.",
       aiPlan: {
-        personalAnalysis: `אתה נושא ${ctx.missions.filter((m) => m.status === "ACTIVE").length} משימות פעילות עם ${ctx.taskStats.pending} משימות פתוחות. המומנטום ב-${Math.round(avgMomentum)}% — יש התקדמות, אך עומס רגשי ופיזור עלולים לדלל תנועה אמיתית קדימה. אזור המינוף הגבוה שלך: ${topMission}.`,
+        personalAnalysis: `${operatorName}, אתה נושא ${ctx.missions.filter((m) => m.status === "ACTIVE").length} משימות פעילות עם ${ctx.taskStats.pending} משימות פתוחות. המומנטום ב-${Math.round(avgMomentum)}% — יש התקדמות, אך עומס רגשי ופיזור עלולים לדלל תנועה אמיתית קדימה. אזור המינוף הגבוה שלך: ${topMission}.`,
         progressActions: [
           `השלם צעד קונקרטי אחד ב-"${topMission}" היום (מקסימום 30 דקות)`,
           "נקה את המשימה הישנה ביותר שנדחתה — גם חלקית נספרת",
@@ -585,7 +599,7 @@ function mockAlignment(
       aiAssessment:
         "L'alignement de vie est modéré. Cocher des cases ne suffit pas. Réduisez l'incertitude sur votre mission la plus impactante tout en protégeant votre stabilité nerveuse.",
       aiPlan: {
-        personalAnalysis: `Vous portez ${ctx.missions.filter((m) => m.status === "ACTIVE").length} missions actives avec ${ctx.taskStats.pending} tâches ouvertes. Momentum à ${Math.round(avgMomentum)}% — du progrès existe, mais la charge émotionnelle dilue le mouvement réel. Zone à fort levier : ${topMission}.`,
+        personalAnalysis: `${operatorName}, vous portez ${ctx.missions.filter((m) => m.status === "ACTIVE").length} missions actives avec ${ctx.taskStats.pending} tâches ouvertes. Momentum à ${Math.round(avgMomentum)}% — du progrès existe, mais la charge émotionnelle dilue le mouvement réel. Zone à fort levier : ${topMission}.`,
         progressActions: [
           `Complétez une étape concrète sur « ${topMission} » aujourd'hui (30 min max)`,
           "Traitez la plus ancienne tâche retardée — partiellement compte",

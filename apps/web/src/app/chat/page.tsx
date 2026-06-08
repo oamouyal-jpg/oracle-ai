@@ -13,6 +13,9 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [aiSource, setAiSource] = useState<"openai" | "offline" | null>(null);
+  const [offlineReason, setOfflineReason] = useState<string | null>(null);
+  const [serverKeyLength, setServerKeyLength] = useState<number | null>(null);
   const [voiceHint, setVoiceHint] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -31,7 +34,20 @@ export default function ChatPage() {
 
   useEffect(() => {
     api.chatHistory().then(setMessages).catch(() => {});
+    api
+      .chatStatus()
+      .then((status) => {
+        setAiSource(status.mode);
+        setOfflineReason(status.reason ?? null);
+        setServerKeyLength(status.keyLength ?? null);
+      })
+      .catch(() => {});
   }, []);
+
+  const clearHistory = async () => {
+    await api.clearChatHistory();
+    setMessages([]);
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -52,7 +68,9 @@ export default function ChatPage() {
     ]);
     setLoading(true);
     try {
-      const { reply } = await api.chat(text);
+      const { reply, source, offlineReason: reason } = await api.chat(text);
+      setAiSource(source ?? null);
+      setOfflineReason(reason ?? null);
       setMessages((m) => [
         ...m,
         {
@@ -72,6 +90,32 @@ export default function ChatPage() {
       <header className="mb-6">
         <h1 className="text-3xl font-light text-zinc-50 glow-text">{t("chat.title")}</h1>
         <p className="text-zinc-500 mt-1">{t("chat.subtitle")}</p>
+        {aiSource === "offline" && (
+          <p className="mt-2 text-xs text-amber-400/90 border border-amber-500/20 rounded-lg px-3 py-2 bg-amber-500/10">
+            {t("chat.offlineMode")}
+            {offlineReason ? ` (${offlineReason})` : ""}
+            {serverKeyLength != null && serverKeyLength < 20
+              ? ` — key length on server: ${serverKeyLength} chars`
+              : ""}
+          </p>
+        )}
+        {aiSource === "openai" && (
+          <div className="mt-2 space-y-1">
+            <p className="text-[10px] uppercase tracking-widest text-emerald-500/80">{t("chat.liveMode")}</p>
+            {messages.length > 0 && (
+              <p className="text-[10px] text-zinc-600">{t("chat.historyPoisoned")}</p>
+            )}
+          </div>
+        )}
+        {messages.length > 0 && (
+          <button
+            type="button"
+            onClick={() => void clearHistory()}
+            className="mt-2 text-[10px] text-zinc-500 hover:text-zinc-300 underline"
+          >
+            {t("chat.clearHistory")}
+          </button>
+        )}
       </header>
 
       <GlassCard className="flex-1 flex flex-col min-h-0 mb-4 overflow-hidden">

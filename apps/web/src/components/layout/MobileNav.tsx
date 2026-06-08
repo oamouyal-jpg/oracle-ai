@@ -8,6 +8,7 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { mobileTabItems, navItems } from "./navConfig";
 import { ShareButton, InstallHint } from "./ShareButton";
+import { OperatorProfile } from "./OperatorProfile";
 
 type MobileNavProps = {
   menuOpen: boolean;
@@ -82,6 +83,7 @@ export function MobileNav({ menuOpen, onCloseMenu, onOpenMenu }: MobileNavProps)
         </nav>
 
         <div className="px-4 py-4 border-t border-white/5 space-y-3">
+          <OperatorProfile />
           <ShareButton variant="pill" className="w-full justify-center" />
           <InstallHint />
           <LanguageSwitcher />

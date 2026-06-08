@@ -107,11 +107,11 @@ Return JSON: { aiNotes, aiStrategy, progressRecommendation (0-100), nextActions 
     ],
   });
 
-  if (!response) {
+  if (!response.ok) {
     return mockMissionReview(mission.missionType === "TRADING", summary);
   }
 
-  const raw = response.choices[0]?.message?.content ?? "{}";
+  const raw = response.completion.choices[0]?.message?.content ?? "{}";
   try {
     return JSON.parse(raw);
   } catch {
@@ -144,14 +144,14 @@ Analyze this ${updateType} mission update. Return JSON: { aiAnalysis (paragraph)
     ],
   });
 
-  if (!response) {
+  if (!response.ok) {
     return {
       aiAnalysis: `Logged ${updateType.toLowerCase()} progress. Stay focused on next actions. Emotional difficulty remains a factor — protect structure.`,
       suggestedProgress: Math.min(mission.progress + 2, 100),
     };
   }
 
-  const raw = response.choices[0]?.message?.content ?? "{}";
+  const raw = response.completion.choices[0]?.message?.content ?? "{}";
   try {
     return JSON.parse(raw);
   } catch {
@@ -223,7 +223,7 @@ Analyze today's trading session. Return JSON:
     ],
   });
 
-  if (!response) {
+  if (!response.ok) {
     const mock = mockTradingReport(responses, metrics);
     const log = await prisma.tradingDailyLog.upsert({
       where: { missionId_date: { missionId, date: today } },
@@ -252,7 +252,7 @@ Analyze today's trading session. Return JSON:
     return { log, ...mock };
   }
 
-  const raw = response.choices[0]?.message?.content ?? "{}";
+  const raw = response.completion.choices[0]?.message?.content ?? "{}";
   const analysis = JSON.parse(raw) as {
     disciplineScore: number;
     executionScore: number;
@@ -335,14 +335,14 @@ Return JSON: { report (full narrative), avgDiscipline, avgExecution, avgRiskCont
     ],
   });
 
-  if (!response) {
+  if (!response.ok) {
     return {
       report: mockWeeklyTradingReport(logs),
       logsCount: logs.length,
     };
   }
 
-  const raw = response.choices[0]?.message?.content ?? "{}";
+  const raw = response.completion.choices[0]?.message?.content ?? "{}";
   return { ...JSON.parse(raw), logsCount: logs.length };
 }
 

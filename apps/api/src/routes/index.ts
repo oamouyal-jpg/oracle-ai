@@ -8,6 +8,7 @@ import { debriefRouter } from "./debrief.js";
 import { journalRouter } from "./journal.js";
 import { dashboardRouter } from "./dashboard.js";
 import { alignmentRouter } from "./alignment.js";
+import { userRouter } from "./user.js";
 
 export const apiRouter = Router();
 
@@ -20,3 +21,4 @@ apiRouter.use("/debrief", debriefRouter);
 apiRouter.use("/journal", journalRouter);
 apiRouter.use("/dashboard", dashboardRouter);
 apiRouter.use("/alignment", alignmentRouter);
+apiRouter.use("/user", userRouter);

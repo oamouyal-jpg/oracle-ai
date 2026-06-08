@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ShareButton } from "./ShareButton";
+import { OperatorProfile } from "./OperatorProfile";
 import { navItems } from "./navConfig";
 
 export function Sidebar() {
@@ -57,14 +58,9 @@ export function Sidebar() {
         </nav>
 
         <motion.div className="space-y-3 border-t border-white/5 px-4 py-4">
+          <OperatorProfile />
           <ShareButton variant="pill" className="w-full justify-center" />
           <LanguageSwitcher />
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-zinc-600">
-              {t("sidebar.strategicMode")}
-            </p>
-            <p className="mt-1 text-xs text-zinc-500">{t("sidebar.operatorActive")}</p>
-          </div>
         </motion.div>
       </motion.div>
     </aside>

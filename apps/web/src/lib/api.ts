@@ -100,10 +100,15 @@ export const api = {
       body: JSON.stringify({ responses }),
     }),
   chat: (message: string) =>
-    fetchApi<{ reply: string }>("/ai/chat", {
+    fetchApi<{ reply: string; source?: "openai" | "offline"; offlineReason?: string }>("/ai/chat", {
       method: "POST",
       body: JSON.stringify({ message }),
     }),
+  chatStatus: () =>
+    fetchApi<{ configured: boolean; mode: "openai" | "offline"; reason?: string; keyLength?: number }>(
+      "/ai/status"
+    ),
+  clearChatHistory: () => fetchApi<void>("/ai/chat/history", { method: "DELETE" }),
   chatHistory: () => fetchApi<ChatMessage[]>("/ai/chat/history"),
   prioritize: () => fetchApi<PrioritizeResult>("/ai/prioritize", { method: "POST" }),
   insights: () => fetchApi<Insights>("/ai/insights"),
@@ -147,6 +152,9 @@ export const api = {
       body: JSON.stringify({ content, mood, energy }),
     }),
   reflections: () => fetchApi<Reflection[]>("/alignment/reflections"),
+  userProfile: () => fetchApi<UserProfile>("/user/profile"),
+  updateProfile: (data: { name?: string; energyLevel?: number }) =>
+    fetchApi<UserProfile>("/user/profile", { method: "PATCH", body: JSON.stringify(data) }),
 };
 
 export interface Domain {
@@ -453,9 +461,24 @@ export interface PrioritizeResult {
 }
 
 export interface Insights {
+  operatorName?: string;
   proactivePrompts: string[];
   memories: string[];
+  patterns?: string[];
   recentScores: Record<string, number> | null;
+}
+
+export interface UserProfile {
+  name: string;
+  email: string;
+  energyLevel: number;
+  strategicProfile: {
+    patterns: string[];
+    strengths: string[];
+    triggers: string[];
+    learnedTraits: string[];
+  };
+  memoryCount?: number;
 }
 
 export interface JournalEntry {

@@ -1,10 +1,12 @@
-import "dotenv/config";
+import { loadEnv } from "./lib/env.js";
+loadEnv();
 import express from "express";
 import cors from "cors";
 import { createServer } from "http";
 import { WebSocketServer } from "ws";
 import { apiRouter } from "./routes/index.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { getOpenAIStatus } from "./lib/openai.js";
 
 const app = express();
 const port = Number(process.env.PORT) || 4000;
@@ -23,7 +25,7 @@ app.use(
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok", service: "oracle-api" });
+  res.json({ status: "ok", service: "oracle-api", ai: getOpenAIStatus() });
 });
 
 app.use("/api", apiRouter);
@@ -50,6 +52,6 @@ wss.on("connection", (ws) => {
   ws.on("close", () => clearInterval(interval));
 });
 
-server.listen(port, () => {
-  console.log(`Oracle API running on http://localhost:${port}`);
+server.listen(port, "0.0.0.0", () => {
+  console.log(`Oracle API running on http://0.0.0.0:${port}`);
 });
