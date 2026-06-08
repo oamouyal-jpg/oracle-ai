@@ -9,7 +9,12 @@ import { ProgressRing } from "@/components/ui/ProgressRing";
 import { QuickCheckIn } from "@/components/alignment/QuickCheckIn";
 import { api, type DashboardData } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
-import { localizeMissionTitle } from "@/lib/i18n/localizeContent";
+import {
+  localizeApiPhrase,
+  localizeDomainName,
+  localizeMissionTitle,
+  localizeTaskTitle,
+} from "@/lib/i18n/localizeContent";
 
 export default function CommandCenter() {
   const { t, locale } = useLocale();
@@ -84,13 +89,14 @@ export default function CommandCenter() {
         className="grid grid-cols-2 md:grid-cols-5 gap-4"
       >
         <StatCard
+          href="/alignment"
           label={t("dashboard.lifeAlignment")}
           value={stats.alignmentScore != null ? `${stats.alignmentScore}` : t("common.dash")}
         />
-        <StatCard label={t("dashboard.activeMissions")} value={stats.activeMissions} />
-        <StatCard label={t("dashboard.pendingTasks")} value={stats.pendingTasks} />
-        <StatCard label={t("dashboard.doneToday")} value={stats.completedToday} />
-        <StatCard label={t("dashboard.momentum")} value={`${stats.momentum}%`} />
+        <StatCard href="/missions" label={t("dashboard.activeMissions")} value={stats.activeMissions} />
+        <StatCard href="/tasks" label={t("dashboard.pendingTasks")} value={stats.pendingTasks} />
+        <StatCard href="/tasks" label={t("dashboard.doneToday")} value={stats.completedToday} />
+        <StatCard href="/life-map" label={t("dashboard.momentum")} value={`${stats.momentum}%`} />
       </motion.div>
 
       <QuickCheckIn onSubmitted={() => setRefreshKey((k) => k + 1)} />
@@ -112,7 +118,7 @@ export default function CommandCenter() {
             {t("dashboard.oracleGuidance")}
           </p>
           <p className="text-lg text-zinc-100 leading-relaxed glow-text">
-            {briefing.strategicGuidance}
+            {localizeApiPhrase(briefing.strategicGuidance, locale)}
           </p>
         </GlassCard>
       )}
@@ -132,7 +138,7 @@ export default function CommandCenter() {
           </div>
           <motion.div className="space-y-3">
             {missions.map((m) => (
-              <Link key={m.id} href={`/missions`}>
+              <Link key={m.id} href={`/missions/${m.id}`}>
                 <div className="group rounded-xl p-4 bg-white/[0.02] border border-white/5 hover:border-indigo-500/30 transition">
                   <motion.div className="flex justify-between items-start gap-4">
                     <div>
@@ -140,7 +146,9 @@ export default function CommandCenter() {
                         {localizeMissionTitle(m.title, locale)}
                       </p>
                       {m.domain && (
-                        <p className="text-xs text-zinc-500 mt-0.5">{m.domain.name}</p>
+                        <p className="text-xs text-zinc-500 mt-0.5">
+                          {localizeDomainName(m.domain.slug, m.domain.name, locale)}
+                        </p>
                       )}
                     </div>
                     <ProgressRing
@@ -172,7 +180,7 @@ export default function CommandCenter() {
                 key={task.id}
                 className="text-sm text-zinc-300 py-2 border-b border-white/5 last:border-0 flex justify-between gap-2"
               >
-                <span className="truncate">{task.title}</span>
+                <span className="truncate">{localizeTaskTitle(task.title, locale)}</span>
                 <span className="text-indigo-400 shrink-0">{task.priority}</span>
               </li>
             ))}
@@ -195,7 +203,7 @@ export default function CommandCenter() {
           <ul className="space-y-2">
             {insights.slice(0, 4).map((p, i) => (
               <li key={i} className="text-sm text-zinc-400 pl-4 border-l-2 border-indigo-500/40">
-                {p}
+                {localizeApiPhrase(p, locale)}
               </li>
             ))}
           </ul>
@@ -208,7 +216,9 @@ export default function CommandCenter() {
             <AlertTriangle className="h-4 w-4" />
             {t("dashboard.stressAreas")}
           </h2>
-          <p className="text-sm text-zinc-400">{stressAreas.join(" · ")}</p>
+          <p className="text-sm text-zinc-400">
+            {stressAreas.map((a) => localizeApiPhrase(a, locale)).join(" · ")}
+          </p>
         </GlassCard>
       )}
 
@@ -243,10 +253,20 @@ export default function CommandCenter() {
         </h2>
         <div className="flex flex-wrap gap-4">
           {lifeMap.domainHealth.map((d) => (
-            <motion.div key={d.name} className="flex flex-col items-center gap-1">
+            <Link
+              key={d.name}
+              href="/domains"
+              className="flex flex-col items-center gap-1 rounded-xl p-2 transition hover:bg-white/5"
+            >
               <ProgressRing value={d.progress} size={56} color={d.color} />
-              <span className="text-xs text-zinc-500">{d.name}</span>
-            </motion.div>
+              <span className="text-xs text-zinc-500">
+                {localizeDomainName(
+                  "slug" in d ? (d.slug as string) : undefined,
+                  d.name,
+                  locale
+                )}
+              </span>
+            </Link>
           ))}
         </div>
       </GlassCard>
@@ -274,11 +294,21 @@ function PageHeader({
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string | number }) {
+function StatCard({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string | number;
+  href: string;
+}) {
   return (
-    <GlassCard>
-      <p className="text-[10px] uppercase tracking-widest text-zinc-500">{label}</p>
-      <p className="text-2xl font-light text-zinc-100 mt-1">{value}</p>
-    </GlassCard>
+    <Link href={href} className="block h-full">
+      <GlassCard className="h-full transition hover:border-indigo-500/40 hover:bg-white/[0.03] cursor-pointer">
+        <p className="text-[10px] uppercase tracking-widest text-zinc-500">{label}</p>
+        <p className="text-2xl font-light text-zinc-100 mt-1">{value}</p>
+      </GlassCard>
+    </Link>
   );
 }

@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { api, type Task, type TaskStatus } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
-import { localizeMissionTitle, localizeTaskStatus } from "@/lib/i18n/localizeContent";
+import {
+  localizeApiPhrase,
+  localizeMissionTitle,
+  localizeTaskStatus,
+  localizeTaskTitle,
+} from "@/lib/i18n/localizeContent";
 
 export default function TasksPage() {
   const { t, locale } = useLocale();
@@ -63,7 +68,7 @@ export default function TasksPage() {
 
       {prioritizeMsg && (
         <GlassCard glow>
-          <p className="text-sm text-indigo-200">{prioritizeMsg}</p>
+          <p className="text-sm text-indigo-200">{localizeApiPhrase(prioritizeMsg, locale)}</p>
         </GlassCard>
       )}
 
@@ -78,7 +83,7 @@ export default function TasksPage() {
                       isDone(task.status) ? "text-zinc-500 line-through" : "text-zinc-100"
                     }
                   >
-                    {task.title}
+                    {localizeTaskTitle(task.title, locale)}
                   </p>
                   {task.mission && (
                     <p className="text-xs text-zinc-500 mt-0.5">
