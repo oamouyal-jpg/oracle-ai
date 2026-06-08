@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/prepare-standalone.mjs",
     "start": "next start",
-    "start:render": "node scripts/render-start.mjs",
+    "start:render": "node .next/standalone/apps/web/server.js",
     "lint": "next lint"
   },
   "dependencies": {

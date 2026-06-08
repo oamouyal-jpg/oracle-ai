@@ -36,6 +36,7 @@ services:
     plan: free
     buildCommand: npm install && npm run build -w @oracle/web
     startCommand: node apps/web/scripts/render-start.mjs
+    # Requires NEXT_PUBLIC_API_URL on this service (browser -> oracle-api directly)
     healthCheckPath: /
     envVars:
       - key: NODE_VERSION

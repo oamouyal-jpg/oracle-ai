@@ -52,7 +52,17 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
     throw new Error(parseApiError(res.status, await res.text()));
   }
   if (res.status === 204) return undefined as T;
-  return res.json();
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    if (text.trimStart().startsWith("<")) {
+      throw new Error(
+        "API returned HTML instead of JSON. Set NEXT_PUBLIC_API_URL on oracle-ai to your oracle-api URL."
+      );
+    }
+    throw new Error(parseApiError(res.status, text));
+  }
 }
 
 /** Ping Express — use on pages to show API-offline banner */
