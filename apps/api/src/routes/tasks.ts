@@ -3,6 +3,12 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { resolveUserId } from "../lib/user.js";
 import { recalculateMissionMomentums } from "../services/alignmentEngine.js";
+import { requestLocale } from "../lib/requestLocale.js";
+import {
+  ensureFocusQueue,
+  replenishFocusQueue,
+  submitFocusFollowUp,
+} from "../services/focusTasks.js";
 
 const taskStatuses = [
   "PENDING",
@@ -16,6 +22,30 @@ const taskStatuses = [
 ] as const;
 
 export const tasksRouter = Router();
+
+tasksRouter.get("/focus", async (req, res) => {
+  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const locale = requestLocale(req);
+  const result = await ensureFocusQueue(userId, locale);
+  res.json(result);
+});
+
+tasksRouter.post("/focus/refresh", async (req, res) => {
+  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const locale = requestLocale(req);
+
+  await prisma.task.updateMany({
+    where: {
+      userId,
+      aiGenerated: true,
+      status: { in: ["PENDING", "IN_PROGRESS"] },
+    },
+    data: { status: "CANCELLED" },
+  });
+
+  const result = await ensureFocusQueue(userId, locale);
+  res.json(result);
+});
 
 tasksRouter.get("/", async (req, res) => {
   const userId = await resolveUserId(req.headers["x-user-id"] as string);
@@ -70,6 +100,22 @@ tasksRouter.post("/", async (req, res) => {
   res.status(201).json(task);
 });
 
+tasksRouter.post("/:id/follow-up", async (req, res) => {
+  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const locale = requestLocale(req);
+  const body = z.object({ progress: z.string().min(2) }).parse(req.body);
+
+  try {
+    const result = await submitFocusFollowUp(userId, req.params.id, body.progress, locale);
+    res.json(result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Follow-up failed";
+    if (message === "Task not found") return res.status(404).json({ error: message });
+    if (message === "Progress update too short") return res.status(400).json({ error: message });
+    throw err;
+  }
+});
+
 tasksRouter.patch("/:id", async (req, res) => {
   const userId = await resolveUserId(req.headers["x-user-id"] as string);
   const body = z
@@ -83,7 +129,7 @@ tasksRouter.patch("/:id", async (req, res) => {
     .parse(req.body);
 
   const data: Record<string, unknown> = { ...body };
-  if (body.status === "COMPLETED" || body.status === "PARTIAL") {
+  if (body.status === "COMPLETED") {
     data.completedAt = new Date();
   }
   if (body.dueDate) data.dueDate = new Date(body.dueDate);
@@ -101,7 +147,17 @@ tasksRouter.patch("/:id", async (req, res) => {
 
   if (task?.missionId) await recalculateMissionMomentums(userId);
 
-  res.json(task);
+  const locale = requestLocale(req);
+  let replenished = null;
+  if (
+    body.status &&
+    ["COMPLETED", "SKIPPED"].includes(body.status) &&
+    task?.aiGenerated
+  ) {
+    replenished = await replenishFocusQueue(userId, locale);
+  }
+
+  res.json({ task, replenished });
 });
 
 tasksRouter.delete("/:id", async (req, res) => {

@@ -95,10 +95,18 @@ export const api = {
     if (params?.missionId) q.set("missionId", params.missionId);
     return fetchApi<Task[]>(`/tasks?${q}`);
   },
+  focusTasks: () => fetchApi<FocusTasksResult>("/tasks/focus"),
+  refreshFocusTasks: () =>
+    fetchApi<FocusTasksResult>("/tasks/focus/refresh", { method: "POST" }),
+  submitTaskFollowUp: (id: string, progress: string) =>
+    fetchApi<TaskFollowUpResult>(`/tasks/${id}/follow-up`, {
+      method: "POST",
+      body: JSON.stringify({ progress }),
+    }),
   createTask: (data: Partial<Task>) =>
     fetchApi<Task>("/tasks", { method: "POST", body: JSON.stringify(data) }),
   updateTask: (id: string, data: Partial<Task>) =>
-    fetchApi<Task>(`/tasks/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    fetchApi<UpdateTaskResult>(`/tasks/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   briefingToday: () => fetchApi<Briefing>("/briefing/today"),
   regenerateBriefing: () =>
     fetchApi<Briefing>("/briefing/regenerate", { method: "POST" }),
@@ -318,9 +326,39 @@ export interface Task {
   priority: number;
   estimatedEffort?: number;
   emotionalDifficulty?: number;
+  aiGenerated?: boolean;
   completionNote?: string | null;
   mission?: { id: string; title: string };
   missionId?: string | null;
+}
+
+export interface FocusFollowUp {
+  taskId: string;
+  question: string;
+  priorNote: string | null;
+  lastOracleReply: string | null;
+}
+
+export interface FocusTasksResult {
+  tasks: Task[];
+  created: number;
+  overview: string;
+  queueSize: number;
+  followUps: FocusFollowUp[];
+  recentFollowUps: FocusFollowUp[];
+  prioritization: { recommendation: string; insights: string[] };
+}
+
+export interface TaskFollowUpResult {
+  task: Task;
+  acknowledgment: string;
+  suggestedStatus: TaskStatus | null;
+  replenished: { tasks: Task[]; created: number } | null;
+}
+
+export interface UpdateTaskResult {
+  task: Task;
+  replenished: { tasks: Task[]; created: number } | null;
 }
 
 export interface AlignmentAiPlan {
