@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Share2, Check, Link2 } from "lucide-react";
 import { clsx } from "clsx";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -74,12 +74,14 @@ export function ShareButton({ className, variant = "icon" }: ShareButtonProps) {
 export function InstallHint() {
   const { t } = useLocale();
   const [show, setShow] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(true);
 
-  if (typeof window === "undefined") return null;
-
-  const isStandalone =
-    window.matchMedia("(display-mode: standalone)").matches ||
-    ("standalone" in navigator && (navigator as Navigator & { standalone?: boolean }).standalone);
+  useEffect(() => {
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      ("standalone" in navigator && (navigator as Navigator & { standalone?: boolean }).standalone);
+    setIsStandalone(Boolean(standalone));
+  }, []);
 
   if (isStandalone) return null;
 

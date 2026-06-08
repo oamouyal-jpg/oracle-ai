@@ -33,19 +33,24 @@ if (!fs.existsSync(standaloneRoot)) {
   process.exit(1);
 }
 
-// Standalone bundle does not include static assets by default.
-copyDir(path.join(webRoot, ".next/static"), path.join(standaloneRoot, ".next/static"));
-copyDir(path.join(webRoot, "public"), path.join(standaloneRoot, "public"));
-
 const server = findServer();
 if (!server) {
   console.error("[oracle-web] Could not find standalone server.js");
   process.exit(1);
 }
 
+const serverDir = path.dirname(server);
+
+// Static assets must live beside server.js (monorepo: apps/web/.next/static).
+copyDir(path.join(webRoot, ".next/static"), path.join(serverDir, ".next/static"));
+copyDir(path.join(webRoot, "public"), path.join(serverDir, "public"));
+
+console.log(`[oracle-web] server: ${server}`);
+console.log(`[oracle-web] static: ${path.join(serverDir, ".next/static")}`);
+
 const port = process.env.PORT || "3000";
 const child = spawn(process.execPath, [server], {
-  cwd: path.dirname(server),
+  cwd: serverDir,
   stdio: "inherit",
   env: {
     ...process.env,
