@@ -6,16 +6,37 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { SpeakButton } from "@/components/speech/SpeakButton";
 import { api, type Briefing } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { localizeApiPhrase } from "@/lib/i18n/localizeContent";
+import type { Locale } from "@/lib/i18n/messages";
+
+const BRIEFING_LOCALE_KEY = "oracle-briefing-locale";
 
 export default function BriefingPage() {
   const { t, speechLang, locale } = useLocale();
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const load = () => api.briefingToday().then(setBriefing).catch(console.error);
-
   useEffect(() => {
-    load();
+    let cancelled = false;
+    const storedLocale = localStorage.getItem(BRIEFING_LOCALE_KEY);
+    const fetchBriefing = async () => {
+      try {
+        const b =
+          storedLocale === locale
+            ? await api.briefingToday()
+            : await api.regenerateBriefing();
+        if (!cancelled) {
+          setBriefing(b);
+          localStorage.setItem(BRIEFING_LOCALE_KEY, locale);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchBriefing();
+    return () => {
+      cancelled = true;
+    };
   }, [locale]);
 
   const regenerate = async () => {
@@ -23,10 +44,17 @@ export default function BriefingPage() {
     try {
       const b = await api.regenerateBriefing();
       setBriefing(b);
+      localStorage.setItem(BRIEFING_LOCALE_KEY, locale);
     } finally {
       setLoading(false);
     }
   };
+
+  const narrative =
+    localizeApiPhrase(briefing?.fullContent ?? briefing?.strategicGuidance ?? "", locale) ||
+    briefing?.fullContent ||
+    briefing?.strategicGuidance ||
+    "";
 
   if (!briefing) {
     return (
@@ -59,49 +87,61 @@ export default function BriefingPage() {
 
       <GlassCard glow>
         <div className="flex justify-end mb-3">
-          <SpeakButton
-            text={briefing.fullContent ?? briefing.strategicGuidance}
-            label={t("briefing.readBriefing")}
-            lang={speechLang}
-          />
+          <SpeakButton text={narrative} label={t("briefing.readBriefing")} lang={speechLang} />
         </div>
-        <p className="text-lg leading-relaxed text-zinc-100">
-          {briefing.fullContent ?? briefing.strategicGuidance}
-        </p>
+        <p className="text-lg leading-relaxed text-zinc-100">{narrative}</p>
       </GlassCard>
 
-      <Section title={t("briefing.topPriorities")} items={briefing.topPriorities} />
+      <Section
+        title={t("briefing.topPriorities")}
+        items={briefing.topPriorities}
+        locale={locale}
+      />
       <GlassCard>
         <h2 className="text-xs uppercase tracking-widest text-indigo-400 mb-2">
           {t("briefing.emotionalRead")}
         </h2>
-        <p className="text-zinc-300">{briefing.emotionalObservation}</p>
+        <p className="text-zinc-300">
+          {localizeApiPhrase(briefing.emotionalObservation, locale)}
+        </p>
       </GlassCard>
       <GlassCard>
         <h2 className="text-xs uppercase tracking-widest text-cyan-400 mb-2">
           {t("briefing.focus")}
         </h2>
-        <p className="text-zinc-300">{briefing.focusRecommendation}</p>
+        <p className="text-zinc-300">
+          {localizeApiPhrase(briefing.focusRecommendation, locale)}
+        </p>
       </GlassCard>
       <GlassCard>
         <h2 className="text-xs uppercase tracking-widest text-zinc-500 mb-2">
           {t("briefing.missionProgress")}
         </h2>
-        <p className="text-zinc-300">{briefing.missionProgress}</p>
+        <p className="text-zinc-300">
+          {localizeApiPhrase(briefing.missionProgress, locale)}
+        </p>
       </GlassCard>
-      <Section title={t("briefing.reminders")} items={briefing.reminders} />
+      <Section title={t("briefing.reminders")} items={briefing.reminders} locale={locale} />
     </div>
   );
 }
 
-function Section({ title, items }: { title: string; items: string[] }) {
+function Section({
+  title,
+  items,
+  locale,
+}: {
+  title: string;
+  items: string[];
+  locale: Locale;
+}) {
   return (
     <GlassCard>
       <h2 className="text-xs uppercase tracking-widest text-zinc-500 mb-3">{title}</h2>
       <ul className="space-y-2">
         {items.map((item) => (
           <li key={item} className="text-sm text-zinc-300 pl-3 border-l-2 border-indigo-500/40">
-            {item}
+            {localizeApiPhrase(item, locale)}
           </li>
         ))}
       </ul>

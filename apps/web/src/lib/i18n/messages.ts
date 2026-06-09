@@ -411,6 +411,8 @@ const en = {
       planNext: "Plan next step: {mission}",
       reviewBlockers: "Review blockers for {mission}",
       executionBlock: "20-min execution block",
+      block20Advance: "20-min block: advance {mission}",
+      clearBlocker: "Clear one blocker on {mission}",
     },
     phrases: {
       insightOverloaded: "You are overloaded. Consider reducing active missions.",
@@ -839,6 +841,8 @@ const he: Messages = {
       planNext: "תכנן צעד הבא: {mission}",
       reviewBlockers: "סקור חסמים עבור {mission}",
       executionBlock: "בלוק ביצוע 20 דקות",
+      block20Advance: "בלוק 20 דק׳: קדם את {mission}",
+      clearBlocker: "נקה חסם אחד ב-{mission}",
     },
     phrases: {
       insightOverloaded: "יש עומס יתר. שקול להפחית משימות פעילות.",
@@ -1224,7 +1228,7 @@ const fr: Messages = {
     domains: {
       health: "Santé",
       relationships: "Relations",
-      business: "Business",
+      business: "Affaires",
       money: "Argent",
       mental: "État mental",
       projects: "Projets",
@@ -1269,6 +1273,8 @@ const fr: Messages = {
       planNext: "Planifier la prochaine étape : {mission}",
       reviewBlockers: "Revoir les blocages pour {mission}",
       executionBlock: "Bloc d'exécution 20 min",
+      block20Advance: "Bloc 20 min : avancer {mission}",
+      clearBlocker: "Lever un blocage sur {mission}",
     },
     phrases: {
       insightOverloaded: "Vous êtes surchargé. Envisagez de réduire les missions actives.",
@@ -1302,22 +1308,29 @@ const fr: Messages = {
 export const messages: Record<Locale, Messages> = { en, he, fr };
 
 /** Dot-path lookup, e.g. t("nav.missions") */
-export function translate(
-  locale: Locale,
-  key: string,
-  vars?: Record<string, string | number>
-): string {
+function lookupMessage(locale: Locale, key: string): string | undefined {
   const parts = key.split(".");
   let value: unknown = messages[locale];
   for (const p of parts) {
     if (value && typeof value === "object" && p in value) {
       value = (value as Record<string, unknown>)[p];
     } else {
-      value = undefined;
-      break;
+      return undefined;
     }
   }
-  let text = typeof value === "string" ? value : key;
+  return typeof value === "string" ? value : undefined;
+}
+
+export function translate(
+  locale: Locale,
+  key: string,
+  vars?: Record<string, string | number>
+): string {
+  let text = lookupMessage(locale, key);
+  if (text === undefined && locale !== "en") {
+    text = lookupMessage("en", key);
+  }
+  if (text === undefined) text = key;
   if (vars) {
     for (const [k, v] of Object.entries(vars)) {
       text = text.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));

@@ -3,6 +3,7 @@ import { asStringArray } from "../lib/arrays.js";
 import type { AppLocale } from "../lib/locale.js";
 import { getOperatorName } from "../lib/operatorLearning.js";
 import { getActiveFocusTasks } from "./focusTasks.js";
+import { apiStr } from "../lib/apiLocale.js";
 
 function startOfDay(d = new Date()) {
   const x = new Date(d);
@@ -25,11 +26,11 @@ export async function buildMorningNotification(userId: string, locale: AppLocale
   const focusLine =
     topTask?.title ??
     briefing?.focusRecommendation ??
-    "Open Oracle and review your top priorities.";
+    apiStr("morningFallback", locale);
 
   const bodyParts: string[] = [];
   if (topTask) {
-    bodyParts.push(`#1 task: ${topTask.title}`);
+    bodyParts.push(apiStr("morningTopTask", locale, { task: topTask.title }));
   }
   const priorities = asStringArray(briefing?.topPriorities);
   if (briefing?.focusRecommendation) {
@@ -41,7 +42,7 @@ export async function buildMorningNotification(userId: string, locale: AppLocale
   const body = bodyParts.join(" · ").slice(0, 220) || focusLine.slice(0, 220);
 
   return {
-    title: `Good morning, ${operatorName}`,
+    title: apiStr("morningTitle", locale, { name: operatorName }),
     body,
     url: topTask ? "/tasks" : "/briefing",
     topTaskTitle: topTask?.title ?? null,

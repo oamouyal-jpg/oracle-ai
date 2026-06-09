@@ -64,7 +64,7 @@ aiRouter.get("/chat/history", async (req, res) => {
 
 aiRouter.post("/prioritize", async (req, res) => {
   const userId = await resolveUserId(req.headers["x-user-id"] as string);
-  const result = await prioritizeTasks(userId);
+  const result = await prioritizeTasks(userId, requestLocale(req));
   res.json(result);
 });
 

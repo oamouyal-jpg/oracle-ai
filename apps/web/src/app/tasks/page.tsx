@@ -68,8 +68,26 @@ export default function TasksPage() {
     }
   };
 
+  const FOCUS_LOCALE_KEY = "oracle-focus-locale";
+
   useEffect(() => {
-    load();
+    let cancelled = false;
+    const run = async () => {
+      const storedLocale = localStorage.getItem(FOCUS_LOCALE_KEY);
+      if (storedLocale !== locale) {
+        try {
+          await api.refreshFocusTasks();
+          localStorage.setItem(FOCUS_LOCALE_KEY, locale);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      if (!cancelled) await load();
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [locale]);
 
   const notify = (msg: string) => {

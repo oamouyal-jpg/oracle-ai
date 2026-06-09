@@ -8,6 +8,11 @@ import {
   rememberInsight,
 } from "../lib/operatorLearning.js";
 import { recalculateMissionMomentums } from "./alignmentEngine.js";
+import {
+  apiStr,
+  mockFollowUpAcknowledgment,
+  mockFollowUpQuestion,
+} from "../lib/apiLocale.js";
 
 export const FOCUS_QUEUE_SIZE = 3;
 
@@ -55,71 +60,39 @@ function hoursSince(date: Date) {
   return (Date.now() - date.getTime()) / (1000 * 60 * 60);
 }
 
-function mockClosedFollowUpQuestion(task: FocusTaskRow, operatorName: string): string {
-  const { user } = parseProgressNote(task.completionNote);
-  if (task.status === "COMPLETED") {
-    return user
-      ? `${operatorName}, you completed "${task.title}" — what made it work? Anything to repeat?`
-      : `What outcome did you get from "${task.title}"? Worth noting for next time?`;
-  }
-  if (task.status === "PARTIAL") {
-    return `You marked "${task.title}" partial — what's still open, and when will you finish it?`;
-  }
-  return `You skipped "${task.title}" — honestly, what blocked you? How should we resize this task?`;
+function detectFollowUpSignals(progress: string) {
+  const lower = progress.toLowerCase();
+  return {
+    done: /\b(done|finished|completed|complete|סיימתי|הושלם|גמרתי|terminé|fini)\b/u.test(lower),
+    partial: /\b(partial|half|some|started|progress|bit|חלקי|התחלתי|partiel|commencé)\b/u.test(
+      lower
+    ),
+    skipped: /\b(skip|didn't|did not|avoid|later|tomorrow|דילגתי|לא עשיתי|sauté|plus tard)\b/u.test(
+      lower
+    ),
+    blocked: /\b(block|stuck|can't|cannot|overwhelm|תקוע|חסום|bloqué)\b/u.test(lower),
+  };
 }
 
-function mockFollowUpQuestion(task: FocusTaskRow, operatorName: string): string {
-  const { user } = parseProgressNote(task.completionNote);
-  const ageH = hoursSince(task.createdAt);
-
-  if (RECENT_CLOSED_STATUSES.includes(task.status as (typeof RECENT_CLOSED_STATUSES)[number])) {
-    return mockClosedFollowUpQuestion(task, operatorName);
-  }
-
-  if (task.status === "PARTIAL") {
-    return user
-      ? `You reported partial progress on "${task.title}" (${user.slice(0, 60)}…) — what's left to finish it?`
-      : `"${task.title}" is partial — what specific step closes it out?`;
-  }
-
-  if (task.status === "IN_PROGRESS") {
-    return user
-      ? `${operatorName}, you said "${user.slice(0, 80)}${user.length > 80 ? "…" : ""}" — how much is left on "${task.title}"?`
-      : `How far did you get on "${task.title}"? What's the next concrete step?`;
-  }
-
-  if (ageH > 24) {
-    return `"${task.title}" has been open a while. Did you complete it, make partial progress, or skip it? What happened?`;
-  }
-
-  return user
-    ? `Any update on "${task.title}" since your last note?`
-    : `Have you started "${task.title}" yet? If not, what's blocking you?`;
-}
-
-function mockFollowUpAcknowledgment(
+function offlineFollowUpAcknowledgment(
   task: FocusTaskRow,
   progress: string,
-  operatorName: string
+  operatorName: string,
+  locale: AppLocale
 ): { acknowledgment: string; suggestedStatus: FollowUpResult["suggestedStatus"] } {
-  const lower = progress.toLowerCase();
-  const done = /\b(done|finished|completed|complete)\b/.test(lower);
-  const partial = /\b(partial|half|some|started|progress|bit)\b/.test(lower);
-  const skipped = /\b(skip|didn't|did not|avoid|later|tomorrow)\b/.test(lower);
-  const blocked = /\b(block|stuck|can't|cannot|overwhelm)\b/.test(lower);
+  const signals = detectFollowUpSignals(progress);
 
   let suggestedStatus: FollowUpResult["suggestedStatus"] = null;
-  if (done) suggestedStatus = "COMPLETED";
-  else if (partial) suggestedStatus = "PARTIAL";
-  else if (skipped) suggestedStatus = "SKIPPED";
+  if (signals.done) suggestedStatus = "COMPLETED";
+  else if (signals.partial) suggestedStatus = "PARTIAL";
+  else if (signals.skipped) suggestedStatus = "SKIPPED";
   else if (task.status === "PENDING") suggestedStatus = "IN_PROGRESS";
 
-  let acknowledgment = `Logged, ${operatorName}. `;
-  if (done) acknowledgment += `Strong close on "${task.title}". Capture one lesson before moving on.`;
-  else if (partial) acknowledgment += `Partial progress counts — schedule the next 20-min block on "${task.title}" while momentum exists.`;
-  else if (skipped) acknowledgment += `Skipping happens — name the real blocker on "${task.title}" so we can shrink the next step.`;
-  else if (blocked) acknowledgment += `Friction noted. Break "${task.title}" into a 10-minute version you can do today.`;
-  else acknowledgment += `Noted. What's the single next action on "${task.title}" in the next 24 hours?`;
+  const acknowledgment = mockFollowUpAcknowledgment(locale, {
+    operatorName,
+    taskTitle: task.title,
+    ...signals,
+  });
 
   return { acknowledgment, suggestedStatus };
 }
@@ -226,7 +199,15 @@ Rules:
     const parsed = parseProgressNote(task.completionNote);
     return {
       taskId: task.id,
-      question: byId.get(task.id) ?? mockFollowUpQuestion(task, operatorName),
+      question:
+        byId.get(task.id) ??
+        mockFollowUpQuestion(locale, {
+          operatorName,
+          taskTitle: task.title,
+          status: task.status,
+          priorNote: parsed.user,
+          hoursOpen: hoursSince(task.createdAt),
+        }),
       priorNote: parsed.user,
       lastOracleReply: parsed.oracle,
     };
@@ -307,7 +288,7 @@ Rules:
   }
 
   if (!acknowledgment) {
-    const mock = mockFollowUpAcknowledgment(task, trimmed, learning.operatorName);
+    const mock = offlineFollowUpAcknowledgment(task, trimmed, learning.operatorName, locale);
     acknowledgment = mock.acknowledgment;
     suggestedStatus = mock.suggestedStatus;
   }
@@ -386,7 +367,8 @@ async function buildMissionContext(userId: string) {
 function mockFocusTasks(
   missions: Awaited<ReturnType<typeof buildMissionContext>>,
   count: number,
-  existingTitles: string[]
+  existingTitles: string[],
+  locale: AppLocale
 ): FocusTaskPayload[] {
   const out: FocusTaskPayload[] = [];
   const used = new Set(existingTitles.map((t) => t.toLowerCase()));
@@ -395,8 +377,8 @@ function mockFocusTasks(
     if (out.length >= count) break;
     const candidates: FocusTaskPayload[] = [
       {
-        title: `20-min block: advance ${mission.title}`,
-        description: `Set a timer for 20 minutes. Open only what you need for ${mission.title}. One concrete output — email sent, doc filed, or decision written. Stop when the timer ends.`,
+        title: apiStr("focusBlock20Title", locale, { mission: mission.title }),
+        description: apiStr("focusBlock20Desc", locale, { mission: mission.title }),
         missionId: mission.id,
         priority: 90 - out.length * 5,
         estimatedEffort: 25,
@@ -404,10 +386,12 @@ function mockFocusTasks(
         energyCost: 30,
       },
       {
-        title: `Clear one blocker on ${mission.title}`,
+        title: apiStr("focusClearBlockerTitle", locale, { mission: mission.title }),
         description: mission.blockers[0]
-          ? `Address: "${mission.blockers[0]}". Break into the smallest next step (5–15 min). Log what changed.`
-          : `Identify the single thing slowing ${mission.title}. Write it in one sentence, then take one 15-minute action on it.`,
+          ? apiStr("focusClearBlockerDescWith", locale, {
+              blocker: mission.blockers[0],
+            })
+          : apiStr("focusClearBlockerDescWithout", locale, { mission: mission.title }),
         missionId: mission.id,
         priority: 85 - out.length * 5,
         estimatedEffort: 30,
@@ -415,8 +399,8 @@ function mockFocusTasks(
         energyCost: 35,
       },
       {
-        title: `Plan next step: ${mission.title}`,
-        description: `Write three bullets: what is done, what is stuck, what you will do in the next 24 hours. Then do bullet three immediately if it takes under 20 minutes.`,
+        title: apiStr("focusPlanTitle", locale, { mission: mission.title }),
+        description: apiStr("focusPlanDesc", locale),
         missionId: mission.id,
         priority: 80 - out.length * 5,
         estimatedEffort: 20,
@@ -527,10 +511,12 @@ Rules:
   }
 
   if (payloads.length < count) {
-    const mock = mockFocusTasks(missions, count - payloads.length, [
-      ...existingTitles,
-      ...payloads.map((p) => p.title),
-    ]);
+    const mock = mockFocusTasks(
+      missions,
+      count - payloads.length,
+      [...existingTitles, ...payloads.map((p) => p.title)],
+      locale
+    );
     payloads = [...payloads, ...mock];
   }
 

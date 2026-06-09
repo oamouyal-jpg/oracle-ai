@@ -6,6 +6,7 @@ import { Moon, ChevronRight, Sparkles } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { api, type DebriefQuestions, type NightDebrief } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { localizeApiPhrase } from "@/lib/i18n/localizeContent";
 
 type Phase = "intro" | "questions" | "analysis";
 
@@ -148,7 +149,9 @@ export default function NightDebriefPage() {
         </div>
 
         <GlassCard glow>
-          <p className="text-zinc-100 leading-relaxed">{result.aiAssessment}</p>
+          <p className="text-zinc-100 leading-relaxed">
+            {localizeApiPhrase(result.aiAssessment ?? "", locale)}
+          </p>
         </GlassCard>
 
         {result.behavioralNotes?.length > 0 && (
@@ -159,7 +162,7 @@ export default function NightDebriefPage() {
             <ul className="space-y-2">
               {result.behavioralNotes.map((n) => (
                 <li key={n} className="text-sm text-zinc-400 border-l-2 border-indigo-500/30 pl-3">
-                  {n}
+                  {localizeApiPhrase(n, locale)}
                 </li>
               ))}
             </ul>
@@ -171,14 +174,18 @@ export default function NightDebriefPage() {
             <h2 className="text-xs uppercase tracking-widest text-cyan-400 mb-4">
               {t("debrief.tomorrowPlan")}
             </h2>
-            <p className="text-sm text-zinc-300 mb-4">{plan.executionStrategy}</p>
-            <p className="text-sm text-indigo-200 mb-4">{plan.focusRecommendation}</p>
+            <p className="text-sm text-zinc-300 mb-4">
+              {localizeApiPhrase(plan.executionStrategy, locale)}
+            </p>
+            <p className="text-sm text-indigo-200 mb-4">
+              {localizeApiPhrase(plan.focusRecommendation, locale)}
+            </p>
             <div className="grid md:grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-zinc-600 text-xs uppercase mb-2">{t("debrief.priorities")}</p>
                 <ul className="text-zinc-400 space-y-1">
                   {plan.topPriorities?.map((p) => (
-                    <li key={p}>· {p}</li>
+                    <li key={p}>· {localizeApiPhrase(p, locale)}</li>
                   ))}
                 </ul>
               </div>
@@ -186,7 +193,7 @@ export default function NightDebriefPage() {
                 <p className="text-zinc-600 text-xs uppercase mb-2">{t("debrief.warnings")}</p>
                 <ul className="text-amber-200/70 space-y-1">
                   {plan.emotionalWarnings?.map((w) => (
-                    <li key={w}>· {w}</li>
+                    <li key={w}>· {localizeApiPhrase(w, locale)}</li>
                   ))}
                 </ul>
               </div>
