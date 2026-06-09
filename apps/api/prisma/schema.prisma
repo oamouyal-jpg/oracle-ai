@@ -8,14 +8,17 @@ datasource db {
 }
 
 model User {
-  id               String            @id @default(cuid())
-  clerkId          String?           @unique
-  email            String            @unique
-  name             String?
-  strategicProfile Json?
-  energyLevel      Int               @default(70)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  id                 String            @id @default(cuid())
+  clerkId            String?           @unique
+  email              String            @unique
+  passwordHash       String?
+  name               String?
+  strategicProfile   Json?
+  onboardingComplete Boolean           @default(false)
+  onboardingContext  Json?
+  energyLevel        Int               @default(70)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   domains          Domain[]
   missions         Mission[]
   tasks            Task[]

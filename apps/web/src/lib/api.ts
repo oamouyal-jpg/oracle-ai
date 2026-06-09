@@ -1,4 +1,6 @@
 import { getStoredLocale } from "@/lib/i18n/messages";
+import { getSessionToken } from "@/lib/session";
+import type { Session, SessionUser } from "@/lib/session";
 
 const API_OFFLINE_MSG =
   "Oracle API is not running on port 4000. In PowerShell run: npm.cmd run dev:api (or npm.cmd run dev for both servers), then refresh.";
@@ -32,6 +34,16 @@ function parseApiError(status: number, text: string): string {
   return message;
 }
 
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "x-locale": getStoredLocale(),
+  };
+  const token = getSessionToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
 async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
   const url = getApiUrl(path);
   let res: Response;
@@ -39,8 +51,7 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
     res = await fetch(url, {
       ...options,
       headers: {
-        "Content-Type": "application/json",
-        "x-locale": getStoredLocale(),
+        ...authHeaders(),
         ...options?.headers,
       },
       cache: "no-store",
@@ -84,6 +95,24 @@ export async function checkApiHealth(): Promise<boolean> {
 }
 
 export const api = {
+  register: (name: string, email: string, password: string) =>
+    fetchApi<Session>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ name, email, password }),
+    }),
+  login: (email: string, password: string) =>
+    fetchApi<Session>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+  authMe: () => fetchApi<SessionUser>("/auth/me"),
+  onboardingQuestions: () =>
+    fetchApi<{ complete: boolean; questions: OnboardingQuestion[] }>("/auth/onboarding/questions"),
+  completeOnboarding: (answers: Record<string, string>) =>
+    fetchApi<{ ok: boolean; onboardingComplete: boolean }>("/auth/onboarding/complete", {
+      method: "POST",
+      body: JSON.stringify({ answers }),
+    }),
   dashboard: () => fetchApi<DashboardData>("/dashboard"),
   domains: () => fetchApi<Domain[]>("/domains"),
   missions: (status?: string) =>
@@ -525,6 +554,12 @@ export interface Insights {
   recentScores: Record<string, number> | null;
 }
 
+export interface OnboardingQuestion {
+  id: string;
+  question: string;
+  placeholder: string;
+}
+
 export interface UserProfile {
   name: string;
   email: string;
@@ -536,6 +571,7 @@ export interface UserProfile {
     learnedTraits: string[];
   };
   memoryCount?: number;
+  onboardingComplete?: boolean;
 }
 
 export interface JournalEntry {

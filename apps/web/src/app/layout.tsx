@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/layout/AppShell";
+import { AuthProvider } from "@/lib/AuthProvider";
 
 export const metadata: Metadata = {
   title: "Oracle — Life Operating System",
@@ -37,7 +38,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased touch-manipulation">
-        <AppShell>{children}</AppShell>
+        <AuthProvider>
+          <AppShell>{children}</AppShell>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { User } from "lucide-react";
 import { api, type UserProfile } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { useAuth } from "@/lib/AuthProvider";
 import { MorningNotificationSettings } from "@/components/notifications/MorningNotificationSettings";
 
 type OperatorProfileProps = {
@@ -14,6 +15,7 @@ type OperatorProfileProps = {
 
 export function OperatorProfile({ className, compact }: OperatorProfileProps) {
   const { t } = useLocale();
+  const { logout } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -109,6 +111,13 @@ export function OperatorProfile({ className, compact }: OperatorProfileProps) {
             <p className="text-[10px] text-zinc-600 italic">{t("profile.noPatternsYet")}</p>
           )}
           <MorningNotificationSettings />
+          <button
+            type="button"
+            onClick={logout}
+            className="mt-2 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 hover:border-white/20 transition"
+          >
+            {t("auth.signOut")}
+          </button>
         </>
       )}
     </div>

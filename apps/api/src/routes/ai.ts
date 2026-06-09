@@ -18,13 +18,13 @@ aiRouter.get("/status", (_req, res) => {
 });
 
 aiRouter.delete("/chat/history", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   await prisma.chatMessage.deleteMany({ where: { userId } });
   res.status(204).send();
 });
 
 aiRouter.post("/chat", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const { message } = z.object({ message: z.string().min(1) }).parse(req.body);
 
   const history = await prisma.chatMessage.findMany({
@@ -53,7 +53,7 @@ aiRouter.post("/chat", async (req, res) => {
 });
 
 aiRouter.get("/chat/history", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const messages = await prisma.chatMessage.findMany({
     where: { userId },
     orderBy: { createdAt: "asc" },
@@ -63,13 +63,13 @@ aiRouter.get("/chat/history", async (req, res) => {
 });
 
 aiRouter.post("/prioritize", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const result = await prioritizeTasks(userId, requestLocale(req));
   res.json(result);
 });
 
 aiRouter.get("/insights", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const [memories, debriefs, emotional, learning, operatorName] = await Promise.all([
     prisma.aIMemory.findMany({
       where: { userId },

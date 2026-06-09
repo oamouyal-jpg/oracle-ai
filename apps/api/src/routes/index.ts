@@ -10,8 +10,11 @@ import { dashboardRouter } from "./dashboard.js";
 import { alignmentRouter } from "./alignment.js";
 import { userRouter } from "./user.js";
 import { notificationsRouter } from "./notifications.js";
+import { authRouter } from "./auth.js";
 
 export const apiRouter = Router();
+
+apiRouter.use("/auth", authRouter);
 
 apiRouter.use("/domains", domainsRouter);
 apiRouter.use("/missions", missionsRouter);

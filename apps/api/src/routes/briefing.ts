@@ -13,7 +13,7 @@ function startOfDay(d = new Date()) {
 }
 
 briefingRouter.get("/today", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const today = startOfDay();
 
   let briefing = await prisma.dailyBriefing.findFirst({
@@ -35,7 +35,7 @@ briefingRouter.get("/today", async (req, res) => {
 });
 
 briefingRouter.post("/regenerate", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const today = startOfDay();
   const generated = await generateDailyBriefing(userId, requestLocale(req));
 

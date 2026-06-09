@@ -9,6 +9,7 @@ async function main() {
     create: {
       email: "operator@oracle.local",
       name: "Operator",
+      onboardingComplete: true,
       strategicProfile: {
         patterns: ["Avoids admin tasks under stress", "Peak performance: structured mornings"],
         strengths: ["Strategic vision", "Resilience", "Creative problem solving"],

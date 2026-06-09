@@ -6,7 +6,7 @@ import { resolveUserId } from "../lib/user.js";
 export const journalRouter = Router();
 
 journalRouter.get("/", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const entries = await prisma.journalEntry.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
@@ -16,7 +16,7 @@ journalRouter.get("/", async (req, res) => {
 });
 
 journalRouter.post("/", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const body = z
     .object({
       content: z.string().min(1),

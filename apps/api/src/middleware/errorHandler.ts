@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 import { isOpenAIAuthError } from "../lib/openai.js";
+import { HttpError } from "../lib/errors.js";
 
 export function errorHandler(
   err: unknown,
@@ -9,6 +10,11 @@ export function errorHandler(
   _next: NextFunction
 ) {
   if (res.headersSent) return;
+
+  if (err instanceof HttpError) {
+    res.status(err.status).json({ error: err.message });
+    return;
+  }
 
   if (err instanceof ZodError) {
     res.status(400).json({

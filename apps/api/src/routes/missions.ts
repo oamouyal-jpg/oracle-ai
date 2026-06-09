@@ -30,7 +30,7 @@ function formatMission(m: Record<string, unknown>) {
 }
 
 missionsRouter.get("/", asyncHandler(async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const status = req.query.status as string | undefined;
   const type = req.query.type as string | undefined;
   const missions = await prisma.mission.findMany({
@@ -65,7 +65,7 @@ missionsRouter.get("/", asyncHandler(async (req, res) => {
 }));
 
 missionsRouter.post("/", asyncHandler(async (req, res) => {
-    const userId = await resolveUserId(req.headers["x-user-id"] as string);
+    const userId = await resolveUserId(req);
     const schema = z.object({
       title: z.string().min(1),
       purpose: z.string().optional(),
@@ -136,7 +136,7 @@ missionsRouter.get("/trading/questions", (req, res) => {
 });
 
 missionsRouter.get("/:id", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const mission = await prisma.mission.findFirst({
     where: { id: req.params.id, userId },
     include: {
@@ -151,7 +151,7 @@ missionsRouter.get("/:id", async (req, res) => {
 });
 
 missionsRouter.patch("/:id", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const body = z
     .object({
       title: z.string().optional(),
@@ -184,7 +184,7 @@ missionsRouter.patch("/:id", async (req, res) => {
 });
 
 missionsRouter.post("/:id/updates", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const { content, updateType } = z
     .object({
       content: z.string().min(1),
@@ -222,7 +222,7 @@ missionsRouter.post("/:id/updates", async (req, res) => {
 });
 
 missionsRouter.post("/:id/ai-review", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const mission = await prisma.mission.findFirst({
     where: { id: req.params.id, userId },
   });
@@ -247,7 +247,7 @@ missionsRouter.post("/:id/ai-review", async (req, res) => {
 });
 
 missionsRouter.get("/:id/trading/today", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -258,7 +258,7 @@ missionsRouter.get("/:id/trading/today", async (req, res) => {
 });
 
 missionsRouter.post("/:id/trading/daily", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const body = z
     .object({
       responses: z.record(z.string()),
@@ -290,13 +290,13 @@ missionsRouter.post("/:id/trading/daily", async (req, res) => {
 });
 
 missionsRouter.get("/:id/trading/weekly", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const report = await generateWeeklyTradingReport(req.params.id, userId);
   res.json(report);
 });
 
 missionsRouter.delete("/:id", asyncHandler(async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const result = await prisma.mission.deleteMany({
     where: { id, userId },

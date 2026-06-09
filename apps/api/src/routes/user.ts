@@ -10,10 +10,16 @@ import {
 export const userRouter = Router();
 
 userRouter.get("/profile", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { name: true, email: true, strategicProfile: true, energyLevel: true },
+    select: {
+      name: true,
+      email: true,
+      strategicProfile: true,
+      energyLevel: true,
+      onboardingComplete: true,
+    },
   });
   if (!user) {
     res.status(404).json({ error: "User not found" });
@@ -29,11 +35,12 @@ userRouter.get("/profile", async (req, res) => {
     energyLevel: user.energyLevel,
     strategicProfile: profile,
     memoryCount,
+    onboardingComplete: user.onboardingComplete,
   });
 });
 
 userRouter.patch("/profile", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const body = z
     .object({
       name: z.string().min(1).max(80).optional(),

@@ -11,7 +11,7 @@ export const dashboardRouter = Router();
 
 dashboardRouter.get("/", asyncHandler(async (req, res) => {
   try {
-    const userId = await resolveUserId(req.headers["x-user-id"] as string);
+    const userId = await resolveUserId(req);
 
     let alignmentData = null;
     try {

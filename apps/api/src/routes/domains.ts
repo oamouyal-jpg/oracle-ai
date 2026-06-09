@@ -8,7 +8,7 @@ import { localizeDomains } from "../lib/contentLocale.js";
 export const domainsRouter = Router();
 
 domainsRouter.get("/", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const domains = await prisma.domain.findMany({
     where: { userId },
     orderBy: { priority: "desc" },
@@ -18,7 +18,7 @@ domainsRouter.get("/", async (req, res) => {
 });
 
 domainsRouter.post("/", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const body = z
     .object({
       name: z.string().min(1),
@@ -52,7 +52,7 @@ domainsRouter.post("/", async (req, res) => {
 });
 
 domainsRouter.patch("/:id", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const body = z
     .object({
       name: z.string().optional(),

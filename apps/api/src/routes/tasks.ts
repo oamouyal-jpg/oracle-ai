@@ -24,14 +24,14 @@ const taskStatuses = [
 export const tasksRouter = Router();
 
 tasksRouter.get("/focus", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const locale = requestLocale(req);
   const result = await ensureFocusQueue(userId, locale);
   res.json(result);
 });
 
 tasksRouter.post("/focus/refresh", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const locale = requestLocale(req);
 
   await prisma.task.updateMany({
@@ -48,7 +48,7 @@ tasksRouter.post("/focus/refresh", async (req, res) => {
 });
 
 tasksRouter.get("/", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const status = req.query.status as string | undefined;
   const missionId = req.query.missionId as string | undefined;
 
@@ -65,7 +65,7 @@ tasksRouter.get("/", async (req, res) => {
 });
 
 tasksRouter.post("/", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const body = z
     .object({
       title: z.string().min(1),
@@ -101,7 +101,7 @@ tasksRouter.post("/", async (req, res) => {
 });
 
 tasksRouter.post("/:id/follow-up", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const locale = requestLocale(req);
   const body = z.object({ progress: z.string().min(2) }).parse(req.body);
 
@@ -117,7 +117,7 @@ tasksRouter.post("/:id/follow-up", async (req, res) => {
 });
 
 tasksRouter.patch("/:id", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const body = z
     .object({
       title: z.string().optional(),
@@ -161,7 +161,7 @@ tasksRouter.patch("/:id", async (req, res) => {
 });
 
 tasksRouter.delete("/:id", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const result = await prisma.task.deleteMany({
     where: { id: req.params.id, userId },
   });

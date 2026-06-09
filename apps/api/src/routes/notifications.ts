@@ -6,7 +6,7 @@ import { buildMorningNotification } from "../services/morningNotification.js";
 export const notificationsRouter = Router();
 
 notificationsRouter.get("/morning", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const locale = requestLocale(req);
   const payload = await buildMorningNotification(userId, locale);
   res.json(payload);

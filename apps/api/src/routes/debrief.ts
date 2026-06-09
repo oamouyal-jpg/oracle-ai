@@ -19,7 +19,7 @@ debriefRouter.get("/questions", (req, res) => {
 });
 
 debriefRouter.get("/today", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const today = startOfDay();
   const debrief = await prisma.nightDebrief.findFirst({
     where: { userId, date: { gte: today } },
@@ -28,7 +28,7 @@ debriefRouter.get("/today", async (req, res) => {
 });
 
 debriefRouter.post("/submit", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const { responses } = z
     .object({ responses: z.record(z.string()) })
     .parse(req.body);
@@ -65,7 +65,7 @@ debriefRouter.post("/submit", async (req, res) => {
 });
 
 debriefRouter.get("/history", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const debriefs = await prisma.nightDebrief.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },

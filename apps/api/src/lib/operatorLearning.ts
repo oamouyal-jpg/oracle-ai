@@ -114,6 +114,12 @@ export async function buildOperatorLearningContext(userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   const name = user?.name?.trim() || "Operator";
   const profile = parseStrategicProfile(user?.strategicProfile);
+  const onboardingContext =
+    user?.onboardingContext &&
+    typeof user.onboardingContext === "object" &&
+    "summary" in (user.onboardingContext as object)
+      ? String((user.onboardingContext as { summary?: string }).summary ?? "")
+      : "";
 
   const memories = await prisma.aIMemory.findMany({
     where: { userId },
@@ -130,6 +136,7 @@ export async function buildOperatorLearningContext(userId: string) {
 
   return {
     operatorName: name,
+    onboardingSummary: onboardingContext,
     strategicProfile: profile,
     learnedMemories: memories.map((m) => ({
       category: m.category,
@@ -153,7 +160,10 @@ export function buildOracleSystemPrompt(
   locale: AppLocale,
   extra?: string
 ): string {
-  const { strategicProfile, learnedMemories } = learningContext;
+  const { strategicProfile, learnedMemories, onboardingSummary } = learningContext;
+  const backgroundBlock = onboardingSummary?.trim()
+    ? `Onboarding background: ${onboardingSummary.trim()}`
+    : "";
   const memoryBlock =
     learnedMemories.length > 0
       ? learnedMemories.map((m) => `- [${m.category}] ${m.content}`).join("\n")
@@ -167,6 +177,7 @@ OPERATOR PROFILE:
 - Name: ${operatorName}
 - Address ${operatorName} by their first name when natural (not every sentence).
 - You have been learning ${operatorName} over time. Use known patterns to make advice specific, not generic.
+${backgroundBlock ? `- ${backgroundBlock}` : ""}
 
 Known strengths: ${strategicProfile.strengths.join("; ") || "—"}
 Known triggers: ${strategicProfile.triggers.join("; ") || "—"}

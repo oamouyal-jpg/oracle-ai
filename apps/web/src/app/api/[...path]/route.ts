@@ -12,6 +12,8 @@ async function proxy(req: NextRequest, { params }: RouteCtx) {
   const headers = new Headers();
   const contentType = req.headers.get("content-type");
   if (contentType) headers.set("content-type", contentType);
+  const auth = req.headers.get("authorization");
+  if (auth) headers.set("authorization", auth);
   const userId = req.headers.get("x-user-id");
   if (userId) headers.set("x-user-id", userId);
   const locale = req.headers.get("x-locale");

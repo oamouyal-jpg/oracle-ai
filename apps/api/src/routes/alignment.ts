@@ -13,14 +13,14 @@ import {
 export const alignmentRouter = Router();
 
 alignmentRouter.get("/", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const locale = requestLocale(req);
   const data = await getAlignmentDashboard(userId, locale);
   res.json(data);
 });
 
 alignmentRouter.post("/recalculate", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const locale = requestLocale(req);
   await recalculateMissionMomentums(userId);
   const alignment = await computeLifeAlignment(userId, locale);
@@ -29,7 +29,7 @@ alignmentRouter.post("/recalculate", async (req, res) => {
 });
 
 alignmentRouter.post("/reflect", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const body = z
     .object({
       content: z.string().min(1),
@@ -51,7 +51,7 @@ alignmentRouter.post("/reflect", async (req, res) => {
 });
 
 alignmentRouter.get("/reflections", async (req, res) => {
-  const userId = await resolveUserId(req.headers["x-user-id"] as string);
+  const userId = await resolveUserId(req);
   const reflections = await prisma.reflection.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
