@@ -11,10 +11,13 @@ import { alignmentRouter } from "./alignment.js";
 import { userRouter } from "./user.js";
 import { notificationsRouter } from "./notifications.js";
 import { authRouter } from "./auth.js";
+import { clarityRouter } from "./clarity.js";
 
 export const apiRouter = Router();
 
 apiRouter.use("/auth", authRouter);
+
+apiRouter.use("/clarity", clarityRouter);
 
 apiRouter.use("/domains", domainsRouter);
 apiRouter.use("/missions", missionsRouter);

@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Zap,
   BookOpen,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
@@ -17,6 +18,7 @@ export type NavItem = {
   href: string;
   key:
     | "nav.commandCenter"
+    | "nav.clarity"
     | "nav.lifeMap"
     | "nav.domains"
     | "nav.alignment"
@@ -32,6 +34,7 @@ export type NavItem = {
 
 export const navItems: NavItem[] = [
   { href: "/", key: "nav.commandCenter", icon: LayoutDashboard },
+  { href: "/clarity", key: "nav.clarity", icon: Sparkles },
   { href: "/life-map", key: "nav.lifeMap", icon: Map },
   { href: "/domains", key: "nav.domains", icon: Layers },
   { href: "/alignment", key: "nav.alignment", icon: Activity },
@@ -47,7 +50,7 @@ export const navItems: NavItem[] = [
 /** Primary tabs on mobile bottom bar */
 export const mobileTabItems: NavItem[] = [
   navItems[0],
-  navItems[4],
+  navItems[1],
   navItems[5],
-  navItems[8],
+  navItems[9],
 ];

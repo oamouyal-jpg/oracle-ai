@@ -203,6 +203,43 @@ export const api = {
   updateProfile: (data: { name?: string; energyLevel?: number }) =>
     fetchApi<UserProfile>("/user/profile", { method: "PATCH", body: JSON.stringify(data) }),
   morningNotification: () => fetchApi<MorningNotificationPayload>("/notifications/morning"),
+  clarityIssues: (status?: string) =>
+    fetchApi<ClarityIssueListItem[]>(`/clarity${status ? `?status=${status}` : ""}`),
+  clarityIssue: (id: string) => fetchApi<ClarityIssueDetail>(`/clarity/${id}`),
+  createClarityIssue: (data: CreateClarityIssueInput) =>
+    fetchApi<ClarityIssueDetail & { aiSource?: string }>("/clarity", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  clarifyIssue: (id: string, answer: string) =>
+    fetchApi<ClarityIssueDetail & { done?: boolean }>(`/clarity/${id}/clarify`, {
+      method: "POST",
+      body: JSON.stringify({ answer }),
+    }),
+  completeClarityStep: (issueId: string, stepId: string) =>
+    fetchApi<ClarityIssueDetail>(`/clarity/${issueId}/steps/${stepId}/complete`, {
+      method: "POST",
+    }),
+  skipClarityStep: (issueId: string, stepId: string) =>
+    fetchApi<ClarityIssueDetail>(`/clarity/${issueId}/steps/${stepId}/skip`, {
+      method: "POST",
+    }),
+  clarityCheckIn: (issueId: string, rawText: string) =>
+    fetchApi<ClarityIssueDetail & { aiSource?: string }>(`/clarity/${issueId}/check-in`, {
+      method: "POST",
+      body: JSON.stringify({ rawText }),
+    }),
+  promoteClarityIssue: (issueId: string) =>
+    fetchApi<ClarityIssueDetail & { missionId: string }>(`/clarity/${issueId}/promote`, {
+      method: "POST",
+    }),
+  updateClarityIssue: (id: string, data: { status?: string; title?: string }) =>
+    fetchApi<ClarityIssueDetail>(`/clarity/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  deleteClarityIssue: (id: string) =>
+    fetchApi<void>(`/clarity/${id}`, { method: "DELETE" }),
 };
 
 export interface MorningNotificationPayload {
@@ -580,4 +617,110 @@ export interface JournalEntry {
   mood: number | null;
   tags: string[];
   createdAt: string;
+}
+
+export type ClarityIssueStatus =
+  | "INTAKE"
+  | "CLARIFYING"
+  | "ACTIVE"
+  | "PAUSED"
+  | "COMPLETED"
+  | "ARCHIVED";
+
+export type ClarityStepStatus =
+  | "LOCKED"
+  | "CURRENT"
+  | "PENDING"
+  | "COMPLETED"
+  | "SKIPPED"
+  | "BLOCKED";
+
+export interface CreateClarityIssueInput {
+  rawInput: string;
+  emotionalIntensity?: number;
+  urgency?: number;
+  importance?: number;
+}
+
+export interface ClarityIssueListItem {
+  id: string;
+  title: string;
+  status: ClarityIssueStatus;
+  aiSummary: string | null;
+  northStar: string | null;
+  currentStepTitle: string | null;
+  stepCount: number;
+  promotedMissionId: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface ClarityOutcome {
+  id: string;
+  northStarStatement: string;
+  desiredLifeState: string | null;
+  primaryGoal: string | null;
+  secondaryGoals: string[];
+  successDefinition: string | null;
+  avoidDefinition: string | null;
+}
+
+export interface ClarityConstraint {
+  id: string;
+  type: string;
+  description: string;
+  severity: number;
+}
+
+export interface ClarityStep {
+  id: string;
+  title: string;
+  description: string | null;
+  whyThisNow: string | null;
+  prepareNotes: string | null;
+  priorityOrder: number;
+  status: ClarityStepStatus;
+  difficulty: number;
+  expectedOutcome: string | null;
+  completionCriteria: string | null;
+  completedAt: string | null;
+}
+
+export interface ClarityMessage {
+  id: string;
+  role: string;
+  kind: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface ClarityCheckIn {
+  id: string;
+  rawText: string;
+  aiSummary: string | null;
+  suggestedNextAction: string | null;
+  createdAt: string;
+}
+
+export interface ClarityIssueDetail {
+  id: string;
+  title: string;
+  rawInput: string;
+  aiSummary: string | null;
+  status: ClarityIssueStatus;
+  emotionalIntensity: number | null;
+  urgency: number | null;
+  importance: number | null;
+  pendingQuestions: string[];
+  clarifyingAnswers: string[];
+  promotedMissionId: string | null;
+  outcome: ClarityOutcome | null;
+  constraints: ClarityConstraint[];
+  steps: ClarityStep[];
+  messages: ClarityMessage[];
+  checkIns: ClarityCheckIn[];
+  currentStep: ClarityStep | null;
+  promotedMission?: { id: string; title: string } | null;
+  createdAt: string;
+  updatedAt: string;
 }

@@ -32,6 +32,9 @@ model User {
   reflections      Reflection[]
   alignmentSnapshots AlignmentSnapshot[]
   momentumSnapshots MissionMomentumSnapshot[]
+  clarityIssues      ClarityIssue[]
+  clarityMessages    ClarityMessage[]
+  clarityCheckIns    ClarityCheckIn[]
 }
 
 model Domain {
@@ -89,6 +92,7 @@ model Mission {
   tradingLogs         TradingDailyLog[]
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
+  claritySource       ClarityIssue?
 }
 
 enum MissionStatus {
@@ -327,4 +331,151 @@ model ChatMessage {
   role      String
   content   String
   createdAt DateTime @default(now())
+}
+
+// ─── Clarity module: one major issue → North Star → one step at a time ───
+
+enum ClarityIssueStatus {
+  INTAKE
+  CLARIFYING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum ClarityConstraintType {
+  FINANCIAL
+  EMOTIONAL
+  LEGAL
+  TIME
+  RELATIONSHIP
+  HEALTH
+  LOCATION
+  OTHER
+}
+
+enum ClarityStepStatus {
+  LOCKED
+  CURRENT
+  PENDING
+  COMPLETED
+  SKIPPED
+  BLOCKED
+}
+
+enum ClarityMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum ClarityMessageKind {
+  INTAKE
+  CLARIFYING_QUESTION
+  ANALYSIS
+  COACHING
+  CHECKIN
+}
+
+model ClarityIssue {
+  id                 String              @id @default(cuid())
+  userId             String
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title              String
+  rawInput           String
+  aiSummary          String?
+  status             ClarityIssueStatus  @default(INTAKE)
+  emotionalIntensity Int?
+  urgency            Int?
+  importance         Int?
+  pendingQuestions   Json                @default("[]")
+  clarifyingAnswers  Json                @default("[]")
+  promotedMissionId  String?             @unique
+  promotedMission    Mission?            @relation(fields: [promotedMissionId], references: [id], onDelete: SetNull)
+  outcome            ClarityOutcome?
+  constraints        ClarityConstraint[]
+  steps              ClarityStep[]
+  messages           ClarityMessage[]
+  checkIns           ClarityCheckIn[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([userId, status])
+}
+
+model ClarityOutcome {
+  id                 String       @id @default(cuid())
+  issueId            String       @unique
+  issue              ClarityIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  northStarStatement String
+  desiredLifeState   String?
+  primaryGoal        String?
+  secondaryGoals     Json         @default("[]")
+  successDefinition  String?
+  avoidDefinition    String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model ClarityConstraint {
+  id          String                @id @default(cuid())
+  issueId     String
+  issue       ClarityIssue          @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  type        ClarityConstraintType @default(OTHER)
+  description String
+  severity    Int                   @default(5)
+  createdAt   DateTime              @default(now())
+}
+
+model ClarityStep {
+  id                 String            @id @default(cuid())
+  issueId            String
+  issue              ClarityIssue      @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  parentStepId       String?
+  parentStep         ClarityStep?      @relation("StepHierarchy", fields: [parentStepId], references: [id], onDelete: SetNull)
+  childSteps         ClarityStep[]     @relation("StepHierarchy")
+  title              String
+  description        String?
+  whyThisNow         String?
+  prepareNotes       String?
+  priorityOrder      Int               @default(0)
+  status             ClarityStepStatus @default(LOCKED)
+  difficulty         Int               @default(5)
+  expectedOutcome    String?
+  completionCriteria String?
+  completedAt        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([issueId, priorityOrder])
+}
+
+model ClarityCheckIn {
+  id                   String        @id @default(cuid())
+  userId               String
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issueId              String?
+  issue                ClarityIssue? @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  rawText              String
+  aiSummary            String?
+  completedActions     Json          @default("[]")
+  newRisks             Json          @default("[]")
+  suggestedNextAction  String?
+  priorityShift        String?
+  createdAt            DateTime      @default(now())
+}
+
+model ClarityMessage {
+  id        String             @id @default(cuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issueId   String
+  issue     ClarityIssue       @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  role      ClarityMessageRole
+  kind      ClarityMessageKind @default(COACHING)
+  content   String
+  createdAt DateTime           @default(now())
+
+  @@index([issueId, createdAt])
 }
