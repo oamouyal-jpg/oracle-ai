@@ -25,6 +25,7 @@ const en = {
   nav: {
     commandCenter: "Command Center",
     clarity: "Clarity",
+    clarityShort: "Clarity",
     lifeMap: "Life Map",
     domains: "Domains",
     alignment: "Life Alignment",
@@ -158,6 +159,9 @@ const en = {
     focus: "Focus",
     executionMode: "Execution Mode",
     executionModeDesc: "20-min guided blocks",
+    clarityPromoTitle: "New: Clarity",
+    clarityPromoBody: "One big issue → North Star → your next step. Dump the mess and Oracle finds the move.",
+    clarityPromoCta: "Start Clarity",
   },
   reflection: {
     title: "Quick reflection",
@@ -520,6 +524,7 @@ const he: Messages = {
   nav: {
     commandCenter: "מרכז פיקוד",
     clarity: "בהירות",
+    clarityShort: "בהירות",
     lifeMap: "מפת חיים",
     domains: "תחומים",
     alignment: "יישור חיים",
@@ -651,6 +656,9 @@ const he: Messages = {
     focus: "מיקוד",
     executionMode: "מצב ביצוע",
     executionModeDesc: "בלוקים מודרכים של 20 דקות",
+    clarityPromoTitle: "חדש: בהירות",
+    clarityPromoBody: "נושא אחד → כוכב צפון → הצעד הבא. שפוך את הבלגן ו-Oracle ימצא את המהלך.",
+    clarityPromoCta: "התחל בהירות",
   },
   reflection: {
     title: "רפלקציה מהירה",
@@ -1009,6 +1017,7 @@ const fr: Messages = {
   nav: {
     commandCenter: "Centre de commandement",
     clarity: "Clarté",
+    clarityShort: "Clarté",
     lifeMap: "Carte de vie",
     domains: "Domaines",
     alignment: "Alignement de vie",
@@ -1141,6 +1150,9 @@ const fr: Messages = {
     focus: "Focus",
     executionMode: "Mode exécution",
     executionModeDesc: "Blocs guidés de 20 minutes",
+    clarityPromoTitle: "Nouveau : Clarté",
+    clarityPromoBody: "Un grand enjeu → étoile polaire → prochain pas. Pose le chaos, Oracle trouve l'action.",
+    clarityPromoCta: "Commencer Clarté",
   },
   reflection: {
     title: "Réflexion rapide",

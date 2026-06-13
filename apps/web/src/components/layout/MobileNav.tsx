@@ -106,7 +106,9 @@ export function MobileNav({ menuOpen, onCloseMenu, onOpenMenu }: MobileNavProps)
               )}
             >
               <Icon className={clsx("h-5 w-5", active && "drop-shadow-[0_0_8px_rgba(129,140,248,0.6)]")} />
-              <span className="truncate max-w-[4.5rem] px-0.5">{t(item.key).split(" ")[0]}</span>
+              <span className="truncate max-w-[4.5rem] px-0.5">
+                {item.key === "nav.clarity" ? t("nav.clarityShort") : t(item.key).split(" ")[0]}
+              </span>
             </Link>
           );
         })}

@@ -83,6 +83,29 @@ export default function CommandCenter() {
         }
       />
 
+      <Link href="/clarity/new">
+        <GlassCard
+          glow
+          className="border-violet-500/30 bg-gradient-to-br from-violet-500/10 to-indigo-500/5 hover:border-violet-400/40 transition"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-violet-300 mb-1">
+                {t("dashboard.clarityPromoTitle")}
+              </p>
+              <p className="text-base text-zinc-100 leading-relaxed">
+                {t("dashboard.clarityPromoBody")}
+              </p>
+              <p className="mt-3 inline-flex items-center gap-1 text-sm text-violet-200 font-medium">
+                {t("dashboard.clarityPromoCta")}
+                <ArrowRight className="h-4 w-4" />
+              </p>
+            </div>
+            <Sparkles className="h-8 w-8 shrink-0 text-violet-300" />
+          </div>
+        </GlassCard>
+      </Link>
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
