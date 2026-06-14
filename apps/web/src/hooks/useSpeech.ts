@@ -12,7 +12,7 @@ export function speechSynthesisSupported(): boolean {
   return "speechSynthesis" in window;
 }
 
-/** Collapse stutter repeats from the speech engine (e.g. "hello hello hello"). */
+/** Collapse stutter repeats (e.g. "math math math" → "math"). */
 export function normalizeSpeechSession(text: string): string {
   let s = text.replace(/\s+/g, " ").trim();
   if (!s) return "";
@@ -25,12 +25,11 @@ export function normalizeSpeechSession(text: string): string {
   }
   s = deduped.join(" ");
 
-  // "hello world hello world" → "hello world"
   if (s.length > 6) {
     for (let split = Math.floor(s.length / 2); split >= 4; split--) {
       const head = s.slice(0, split).trim();
       const tail = s.slice(split).trim();
-      if (tail === head || tail.startsWith(`${head} `) || tail.startsWith(head)) {
+      if (tail === head || tail.startsWith(`${head} `)) {
         s = head;
         break;
       }
@@ -41,25 +40,43 @@ export function normalizeSpeechSession(text: string): string {
 }
 
 /**
- * Merge pre-mic text with the current listening session.
- * Session replaces in place while listening — never stack on itself.
+ * Join finalized speech with a new chunk.
+ * Mobile Chrome often sends cumulative text ("hello" → "hello world") — don't stack.
  */
+export function joinSpeechParts(prior: string, chunk: string): string {
+  const a = normalizeSpeechSession(prior);
+  const c = normalizeSpeechSession(chunk);
+  if (!c) return a;
+  if (!a) return c;
+
+  const aL = a.toLowerCase();
+  const cL = c.toLowerCase();
+
+  if (aL === cL) return a;
+  if (cL.startsWith(aL)) return c;
+  if (aL.endsWith(cL)) return a;
+
+  return normalizeSpeechSession(`${a} ${c}`);
+}
+
+/** Fixed prefix (typed before mic) + full spoken session so far. */
 export function mergeVoiceIntoField(prefix: string, sessionText: string): string {
   const base = prefix.trimEnd();
   const session = normalizeSpeechSession(sessionText);
   if (!session) return base;
-  if (!base) return session;
+  return base ? `${base} ${session}` : session;
+}
 
-  const baseLower = base.toLowerCase();
-  const sessionLower = session.toLowerCase();
-
-  if (baseLower === sessionLower) return base;
-  if (baseLower.endsWith(sessionLower)) return base;
-  if (sessionLower.startsWith(baseLower)) {
-    return session.slice(base.length).trimStart() ? session : base;
-  }
-
-  return `${base} ${session}`;
+function extractLastChunk(event: SpeechRecognitionEvent): {
+  text: string;
+  isFinal: boolean;
+} | null {
+  if (event.results.length === 0) return null;
+  const last = event.results[event.results.length - 1];
+  if (!last) return null;
+  const text = (last[0]?.transcript ?? "").trim();
+  if (!text) return null;
+  return { text, isFinal: last.isFinal };
 }
 
 export function useSpeechRecognition(options: {
@@ -69,27 +86,94 @@ export function useSpeechRecognition(options: {
   const [listening, setListening] = useState(false);
   const [supported, setSupported] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const recRef = useRef<SpeechRecognition | null>(null);
+  const activeRef = useRef(false);
   const onTranscriptRef = useRef(options.onTranscript);
+  /** Finalized phrases this mic session (across auto-restarts). */
   const committedRef = useRef("");
+  /** Current in-progress phrase — replaced each interim, not appended. */
+  const liveRef = useRef("");
   const lastEmittedRef = useRef("");
+
   onTranscriptRef.current = options.onTranscript;
 
   useEffect(() => {
     setSupported(speechRecognitionSupported());
   }, []);
 
+  const emitSession = useCallback((isFinal: boolean) => {
+    const session = liveRef.current
+      ? joinSpeechParts(committedRef.current, liveRef.current)
+      : committedRef.current;
+    if (!session || session === lastEmittedRef.current) return;
+    lastEmittedRef.current = session;
+    onTranscriptRef.current(session, isFinal);
+  }, []);
+
   const resetSession = useCallback(() => {
     committedRef.current = "";
+    liveRef.current = "";
     lastEmittedRef.current = "";
   }, []);
 
   const stop = useCallback(() => {
+    activeRef.current = false;
     recRef.current?.stop();
     recRef.current = null;
     setListening(false);
     resetSession();
   }, [resetSession]);
+
+  const bindRecognition = useCallback(
+    (rec: SpeechRecognition) => {
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.lang = options.lang ?? "en-US";
+
+      rec.onresult = (event: SpeechRecognitionEvent) => {
+        const chunk = extractLastChunk(event);
+        if (!chunk) return;
+
+        if (chunk.isFinal) {
+          committedRef.current = joinSpeechParts(committedRef.current, chunk.text);
+          liveRef.current = "";
+          emitSession(true);
+        } else {
+          liveRef.current = chunk.text;
+          emitSession(false);
+        }
+      };
+
+      rec.onerror = (e: SpeechRecognitionErrorEvent) => {
+        if (e.error === "aborted") return;
+        if (e.error !== "no-speech") {
+          setError(
+            e.error === "not-allowed"
+              ? "Microphone permission denied."
+              : "Voice input failed."
+          );
+        }
+        activeRef.current = false;
+        setListening(false);
+        resetSession();
+      };
+
+      rec.onend = () => {
+        if (!activeRef.current) {
+          setListening(false);
+          return;
+        }
+        try {
+          rec.start();
+        } catch {
+          activeRef.current = false;
+          setListening(false);
+        }
+      };
+    },
+    [emitSession, options.lang, resetSession]
+  );
 
   const start = useCallback(() => {
     if (!speechRecognitionSupported()) {
@@ -98,55 +182,15 @@ export function useSpeechRecognition(options: {
     }
     setError(null);
     resetSession();
+    activeRef.current = true;
 
     const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
     const rec = new Ctor();
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.lang = options.lang ?? "en-US";
-
-    rec.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const r = event.results[i];
-        const part = (r[0]?.transcript ?? "").trim();
-        if (!part) continue;
-        if (r.isFinal) {
-          committedRef.current = normalizeSpeechSession(
-            `${committedRef.current} ${part}`.trim()
-          );
-        } else {
-          interim = interim ? `${interim} ${part}` : part;
-        }
-      }
-
-      const sessionText = normalizeSpeechSession(
-        interim ? `${committedRef.current} ${interim}`.trim() : committedRef.current
-      );
-      const hasInterim = interim.length > 0;
-
-      if (!sessionText || sessionText === lastEmittedRef.current) return;
-      lastEmittedRef.current = sessionText;
-      onTranscriptRef.current(sessionText, !hasInterim);
-    };
-
-    rec.onerror = (e: SpeechRecognitionErrorEvent) => {
-      if (e.error !== "aborted") {
-        setError(e.error === "not-allowed" ? "Microphone permission denied." : "Voice input failed.");
-      }
-      setListening(false);
-      resetSession();
-    };
-
-    rec.onend = () => {
-      setListening(false);
-      resetSession();
-    };
-
+    bindRecognition(rec);
     recRef.current = rec;
     rec.start();
     setListening(true);
-  }, [options.lang, resetSession]);
+  }, [bindRecognition, resetSession]);
 
   const toggle = useCallback(() => {
     if (listening) stop();

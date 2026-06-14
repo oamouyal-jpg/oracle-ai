@@ -30,7 +30,8 @@ export function SpeechInputButton({
   const { listening, supported, error, toggle, stop } = useSpeechRecognition({
     lang,
     onTranscript: (sessionText) => {
-      onValueChange(mergeVoiceIntoField(prefixRef.current, sessionText));
+      const next = mergeVoiceIntoField(prefixRef.current, sessionText);
+      onValueChange(next);
     },
   });
 
