@@ -346,7 +346,11 @@ export async function retryClarityPlan(
     throw new Error("Issue cannot retry plan in current status");
   }
 
-  const src = await synthesizeAndActivatePlan(issueId, userId, locale);
+  const { synthesizeWeekPlan } = await import("./weekPlanEngine.js");
+  const src =
+    issue.mode === "WEEK_PLAN"
+      ? await synthesizeWeekPlan(issueId, userId, locale)
+      : await synthesizeAndActivatePlan(issueId, userId, locale);
   await prisma.clarityIssue.update({
     where: { id: issueId },
     data: { pendingQuestions: [] },
@@ -504,6 +508,13 @@ export async function completeCurrentStep(
       data: { status: "COMPLETED", completedAt: new Date() },
     });
 
+    if (step.linkedTaskId) {
+      await tx.task.updateMany({
+        where: { id: step.linkedTaskId, userId },
+        data: { status: "COMPLETED", completedAt: new Date() },
+      });
+    }
+
     const next = await tx.clarityStep.findFirst({
       where: { issueId, status: "LOCKED" },
       orderBy: { priorityOrder: "asc" },
@@ -514,6 +525,12 @@ export async function completeCurrentStep(
         where: { id: next.id },
         data: { status: "CURRENT" },
       });
+      if (next.linkedTaskId) {
+        await tx.task.updateMany({
+          where: { id: next.linkedTaskId, userId },
+          data: { status: "IN_PROGRESS" },
+        });
+      }
       await tx.clarityIssue.update({
         where: { id: issueId },
         data: { status: "ACTIVE" },
@@ -548,6 +565,13 @@ export async function skipCurrentStep(
       data: { status: "SKIPPED" },
     });
 
+    if (step.linkedTaskId) {
+      await tx.task.updateMany({
+        where: { id: step.linkedTaskId, userId },
+        data: { status: "SKIPPED" },
+      });
+    }
+
     const next = await tx.clarityStep.findFirst({
       where: { issueId, status: "LOCKED" },
       orderBy: { priorityOrder: "asc" },
@@ -558,6 +582,12 @@ export async function skipCurrentStep(
         where: { id: next.id },
         data: { status: "CURRENT" },
       });
+      if (next.linkedTaskId) {
+        await tx.task.updateMany({
+          where: { id: next.linkedTaskId, userId },
+          data: { status: "IN_PROGRESS" },
+        });
+      }
     } else {
       await tx.clarityIssue.update({
         where: { id: issueId },
@@ -731,6 +761,50 @@ export async function promoteIssueToMission(issueId: string, userId: string): Pr
 export function formatIssueDetail(issue: Awaited<ReturnType<typeof loadIssueDetail>>) {
   if (!issue) return null;
   const latestState = issue.stateSnapshots?.[0] ?? null;
+
+  const stepsByDay: Record<string, { id: string; title: string; status: string; dueAt: string | null }[]> =
+    {};
+  if (issue.mode === "WEEK_PLAN") {
+    for (const s of issue.steps) {
+      const key = s.dueAt
+        ? new Date(s.dueAt).toISOString().slice(0, 10)
+        : "unscheduled";
+      if (!stepsByDay[key]) stepsByDay[key] = [];
+      stepsByDay[key].push({
+        id: s.id,
+        title: s.title,
+        status: s.status,
+        dueAt: s.dueAt?.toISOString() ?? null,
+      });
+    }
+  }
+
+  const now = new Date();
+  const startToday = new Date(now);
+  startToday.setHours(0, 0, 0, 0);
+  const endToday = new Date(now);
+  endToday.setHours(23, 59, 59, 999);
+
+  const todaySteps =
+    issue.mode === "WEEK_PLAN"
+      ? issue.steps.filter((s) => {
+          if (!s.dueAt) return s.status === "CURRENT";
+          const d = new Date(s.dueAt);
+          return d >= startToday && d <= endToday;
+        })
+      : [];
+
+  const overdueCount =
+    issue.mode === "WEEK_PLAN"
+      ? issue.steps.filter(
+          (s) =>
+            s.dueAt &&
+            new Date(s.dueAt).getTime() < startToday.getTime() &&
+            s.status !== "COMPLETED" &&
+            s.status !== "SKIPPED"
+        ).length
+      : 0;
+
   return {
     ...issue,
     pendingQuestions: asStringArray(issue.pendingQuestions),
@@ -742,6 +816,14 @@ export function formatIssueDetail(issue: Awaited<ReturnType<typeof loadIssueDeta
         }
       : null,
     currentStep: issue.steps.find((s) => s.status === "CURRENT") ?? null,
+    ...(issue.mode === "WEEK_PLAN"
+      ? {
+          stepsByDay,
+          todayStepCount: todaySteps.length,
+          overdueCount,
+          weekStartDate: issue.weekStartDate?.toISOString() ?? null,
+        }
+      : {}),
     latestState: latestState
       ? {
           id: latestState.id,

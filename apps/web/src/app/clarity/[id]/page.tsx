@@ -61,10 +61,31 @@ export default function ClarityIssuePage() {
       : null;
 
   const planStuck =
-    issue?.status === "CLARIFYING" &&
-    issue.pendingQuestions.length === 0 &&
-    issue.steps.length === 0 &&
-    !issue.outcome;
+    (issue?.status === "CLARIFYING" &&
+      issue.pendingQuestions.length === 0 &&
+      issue.steps.length === 0 &&
+      !issue.outcome) ||
+    (issue?.mode === "WEEK_PLAN" &&
+      issue.status === "INTAKE" &&
+      issue.steps.length === 0 &&
+      !issue.outcome);
+
+  const isWeekPlan = issue?.mode === "WEEK_PLAN";
+
+  const formatDue = (iso: string | null | undefined) => {
+    if (!iso) return null;
+    try {
+      return new Date(iso).toLocaleString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    } catch {
+      return null;
+    }
+  };
 
   const submitClarify = async () => {
     if (!clarifyAnswer.trim()) return;
@@ -231,10 +252,26 @@ export default function ClarityIssuePage() {
 
       <header>
         <h1 className="text-2xl font-light leading-snug text-zinc-50 glow-text">{issue.title}</h1>
+        {isWeekPlan ? (
+          <p className="mt-1 text-xs uppercase tracking-wider text-violet-300/80">
+            {t("clarity.weekPlanBadge")}
+          </p>
+        ) : null}
         {issue.aiSummary ? (
           <p className="mt-2 text-sm leading-relaxed text-zinc-500">{issue.aiSummary}</p>
         ) : null}
       </header>
+
+      {isWeekPlan && issue.status === "ACTIVE" ? (
+        <GlassCard className="border-violet-400/20 bg-violet-950/15">
+          <p className="text-sm leading-relaxed text-violet-100/90">{t("clarity.weekTodayHint")}</p>
+          {(issue.overdueCount ?? 0) > 0 ? (
+            <p className="mt-2 text-xs text-amber-300/90">
+              {t("clarity.weekOverdue").replace("{count}", String(issue.overdueCount))}
+            </p>
+          ) : null}
+        </GlassCard>
+      ) : null}
 
       {error ? (
         <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200/90">
@@ -285,7 +322,7 @@ export default function ClarityIssuePage() {
       {issue.outcome ? (
         <GlassCard className="border-amber-500/20 bg-amber-950/10">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-200/70">
-            {t("clarity.northStar")}
+            {isWeekPlan ? t("clarity.weekFocus") : t("clarity.northStar")}
           </p>
           <p className="mt-2 font-display text-lg leading-snug text-amber-50/95">
             {issue.outcome.northStarStatement}
@@ -303,9 +340,16 @@ export default function ClarityIssuePage() {
         <GlassCard glow className="space-y-4">
           <div className="flex items-center gap-2 text-indigo-300/90">
             <Target className="h-4 w-4" />
-            <p className="text-xs font-semibold uppercase tracking-wider">{t("clarity.currentMove")}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider">
+              {isWeekPlan ? t("clarity.weekCurrentTask") : t("clarity.currentMove")}
+            </p>
           </div>
           <p className="text-xl font-medium leading-snug text-zinc-50">{step.title}</p>
+          {step.dueAt ? (
+            <p className="text-xs text-violet-300/80">
+              {t("clarity.weekDue")}: {formatDue(step.dueAt)}
+            </p>
+          ) : null}
           {step.description ? (
             <p className="text-sm leading-relaxed text-zinc-400">{step.description}</p>
           ) : null}
@@ -401,6 +445,46 @@ export default function ClarityIssuePage() {
             {planOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
           {planOpen ? (
+            isWeekPlan && issue.stepsByDay ? (
+              <div className="mt-2 space-y-4">
+                {Object.entries(issue.stepsByDay)
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([day, daySteps]) => (
+                    <div key={day}>
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                        {day === "unscheduled"
+                          ? t("clarity.weekUnscheduled")
+                          : new Date(day + "T12:00:00").toLocaleDateString(undefined, {
+                              weekday: "long",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                      </p>
+                      <ul className="space-y-2">
+                        {daySteps.map((s) => (
+                          <li
+                            key={s.id}
+                            className={`rounded-lg border px-3 py-2 text-sm ${
+                              s.status === "CURRENT"
+                                ? "border-violet-400/40 bg-violet-950/30 text-zinc-100"
+                                : s.status === "COMPLETED" || s.status === "SKIPPED"
+                                  ? "border-white/5 text-zinc-600 line-through"
+                                  : "border-white/5 text-zinc-500"
+                            }`}
+                          >
+                            {s.title}
+                            {s.dueAt ? (
+                              <span className="mt-1 block text-[10px] text-zinc-600">
+                                {formatDue(s.dueAt)}
+                              </span>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+              </div>
+            ) : (
             <ul className="mt-2 space-y-2">
               {issue.steps.map((s) => (
                 <li
@@ -417,6 +501,7 @@ export default function ClarityIssuePage() {
                 </li>
               ))}
             </ul>
+            )
           ) : null}
         </div>
       ) : null}

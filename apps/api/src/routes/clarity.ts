@@ -16,6 +16,7 @@ import {
   submitClarifyingAnswer,
   retryClarityPlan,
 } from "../services/clarityEngine.js";
+import { createWeekPlan } from "../services/weekPlanEngine.js";
 import { runStateDetection } from "../services/stateDetectionEngine.js";
 
 export const clarityRouter = Router();
@@ -44,6 +45,7 @@ clarityRouter.get("/", asyncHandler(async (req, res) => {
     issues.map((i) => ({
       id: i.id,
       title: i.title,
+      mode: i.mode,
       status: i.status,
       aiSummary: i.aiSummary,
       northStar: i.outcome?.northStarStatement,
@@ -54,6 +56,19 @@ clarityRouter.get("/", asyncHandler(async (req, res) => {
       createdAt: i.createdAt,
     }))
   );
+}));
+
+clarityRouter.post("/week", asyncHandler(async (req, res) => {
+  const userId = await resolveUserId(req);
+  const locale = requestLocale(req);
+  const schema = z.object({
+    rawInput: z.string().min(12),
+  });
+  const body = schema.parse(req.body);
+
+  const { source, issueId } = await createWeekPlan(userId, body.rawInput.trim(), locale);
+  const detail = formatIssueDetail(await loadIssueDetail(issueId, userId));
+  res.status(201).json({ ...detail, aiSource: source });
 }));
 
 clarityRouter.post("/", asyncHandler(async (req, res) => {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Sparkles, ChevronRight } from "lucide-react";
+import { Plus, Sparkles, ChevronRight, CalendarDays } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { api, checkApiHealth, type ClarityIssueListItem } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -45,13 +45,22 @@ export default function ClarityListPage() {
         </div>
         <h1 className="font-light text-3xl text-zinc-50 glow-text">{t("clarity.tagline")}</h1>
         <p className="text-sm leading-relaxed text-zinc-500">{t("clarity.subtitle")}</p>
-        <Link
-          href="/clarity/new"
-          className="inline-flex items-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500/25 px-4 py-2.5 text-sm text-indigo-100"
-        >
-          <Plus className="h-4 w-4" />
-          {t("clarity.newIssue")}
-        </Link>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Link
+            href="/clarity/week/new"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-400/40 bg-violet-500/25 px-4 py-2.5 text-sm text-violet-100"
+          >
+            <CalendarDays className="h-4 w-4" />
+            {t("clarity.weekPlanCta")}
+          </Link>
+          <Link
+            href="/clarity/new"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500/25 px-4 py-2.5 text-sm text-indigo-100"
+          >
+            <Plus className="h-4 w-4" />
+            {t("clarity.newIssue")}
+          </Link>
+        </div>
       </header>
 
       {apiOnline === false && (
@@ -82,6 +91,11 @@ export default function ClarityListPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-zinc-100">{issue.title}</p>
+                    {issue.mode === "WEEK_PLAN" ? (
+                      <span className="mt-1 inline-block rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-violet-300/90">
+                        {t("clarity.weekPlanBadge")}
+                      </span>
+                    ) : null}
                     {issue.northStar ? (
                       <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-500">
                         {issue.northStar}

@@ -237,6 +237,22 @@ const en = {
     planStuckBody:
       "Your answers are still here — the last step failed before Oracle could build your North Star and steps. Tap below to rebuild.",
     planRetry: "Rebuild my plan",
+    weekPlanBadge: "Week plan",
+    weekPlanCta: "Organize my week",
+    weekPlanTitle: "Dump your week — Oracle sorts it",
+    weekPlanSubtitle:
+      "Exams, homework, appointments — dump everything. Oracle orders by deadline and urgency, then guides you one task at a time with daily reminders.",
+    weekDumpPlaceholder:
+      "Everything due this week — math exam Thursday, history essay Friday, dentist Tuesday, forgot to email teacher…",
+    weekOrganize: "Organize my week",
+    weekOrganizing: "Oracle is sorting your week…",
+    weekFocus: "This week's focus",
+    weekCurrentTask: "Do this now",
+    weekDue: "Due",
+    weekTodayHint:
+      "Focus only on the current task. Oracle added reminders to your Tasks — finish this before looking at the rest of the week.",
+    weekOverdue: "{count} overdue — Oracle kept the most urgent one first.",
+    weekUnscheduled: "Unscheduled",
   },
   stateCheck: {
     title: "State Check",
@@ -809,6 +825,22 @@ const he: Messages = {
     planStuckBody:
       "התשובות שלך עדיין כאן — השלב האחרון נכשל לפני ש-Oracle בנה את כוכב הצפון והצעדים. לחץ לבנייה מחדש.",
     planRetry: "בנה מחדש את התוכנית",
+    weekPlanBadge: "תוכנית שבוע",
+    weekPlanCta: "ארגן לי את השבוע",
+    weekPlanTitle: "שפוך את השבוע — Oracle יסדר",
+    weekPlanSubtitle:
+      "מבחנים, שיעורי בית, תורים — שפוך הכל. Oracle מסדר לפי דדליין ודחיפות, ומדריך משימה אחר משימה עם תזכורות יומיות.",
+    weekDumpPlaceholder:
+      "כל מה שצריך השבוע — מבחן מתמטיקה בחמישי, עבודה בהיסטוריה בשישי, רופא שיניים ביום שלישי…",
+    weekOrganize: "ארגן את השבוע שלי",
+    weekOrganizing: "Oracle מסדר את השבוע…",
+    weekFocus: "מיקוד השבוע",
+    weekCurrentTask: "עשה את זה עכשיו",
+    weekDue: "עד",
+    weekTodayHint:
+      "התמקד רק במשימה הנוכחית. Oracle הוסיף תזכורות למשימות — סיים את זה לפני שאתה מסתכל על שאר השבוע.",
+    weekOverdue: "{count} באיחור — Oracle שמר את הדחוף ביותר קודם.",
+    weekUnscheduled: "ללא תאריך",
   },
   stateCheck: {
     title: "בדיקת מצב",
@@ -1381,6 +1413,22 @@ const fr: Messages = {
     planStuckBody:
       "Vos réponses sont toujours là — la dernière étape a échoué avant qu'Oracle construise votre étoile polaire et vos pas. Appuyez pour reconstruire.",
     planRetry: "Reconstruire mon plan",
+    weekPlanBadge: "Plan de la semaine",
+    weekPlanCta: "Organiser ma semaine",
+    weekPlanTitle: "Déversez la semaine — Oracle trie",
+    weekPlanSubtitle:
+      "Examens, devoirs, rendez-vous — tout y mettre. Oracle classe par échéance et urgence, puis vous guide une tâche à la fois avec rappels quotidiens.",
+    weekDumpPlaceholder:
+      "Tout ce qui est dû cette semaine — examen de maths jeudi, dissertation vendredi, dentiste mardi…",
+    weekOrganize: "Organiser ma semaine",
+    weekOrganizing: "Oracle trie votre semaine…",
+    weekFocus: "Focus de la semaine",
+    weekCurrentTask: "À faire maintenant",
+    weekDue: "Échéance",
+    weekTodayHint:
+      "Concentrez-vous uniquement sur la tâche en cours. Oracle a ajouté des rappels dans Tâches — finissez celle-ci avant le reste de la semaine.",
+    weekOverdue: "{count} en retard — Oracle a gardé la plus urgente en premier.",
+    weekUnscheduled: "Non planifié",
   },
   stateCheck: {
     title: "État actuel",

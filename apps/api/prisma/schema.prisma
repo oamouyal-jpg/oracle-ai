@@ -360,6 +360,11 @@ model ChatMessage {
 
 // ─── Clarity module: one major issue → North Star → one step at a time ───
 
+enum ClarityIssueMode {
+  SINGLE_ISSUE
+  WEEK_PLAN
+}
+
 enum ClarityIssueStatus {
   INTAKE
   CLARIFYING
@@ -409,6 +414,8 @@ model ClarityIssue {
   user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   title              String
   rawInput           String
+  mode               ClarityIssueMode    @default(SINGLE_ISSUE)
+  weekStartDate      DateTime?
   aiSummary          String?
   status             ClarityIssueStatus  @default(INTAKE)
   emotionalIntensity Int?
@@ -472,6 +479,8 @@ model ClarityStep {
   difficulty         Int               @default(5)
   expectedOutcome    String?
   completionCriteria String?
+  dueAt              DateTime?
+  linkedTaskId       String?           @unique
   completedAt        DateTime?
   agentActions       ActionExecutionQueue[]
   createdAt          DateTime          @default(now())

@@ -217,6 +217,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  createWeekPlan: (rawInput: string) =>
+    fetchApi<ClarityIssueDetail & { aiSource?: string }>("/clarity/week", {
+      method: "POST",
+      body: JSON.stringify({ rawInput }),
+    }),
   clarifyIssue: (id: string, answer: string) =>
     fetchApi<ClarityIssueDetail & { done?: boolean }>(`/clarity/${id}/clarify`, {
       method: "POST",
@@ -728,9 +733,12 @@ export interface CreateClarityIssueInput {
   importance?: number;
 }
 
+export type ClarityIssueMode = "SINGLE_ISSUE" | "WEEK_PLAN";
+
 export interface ClarityIssueListItem {
   id: string;
   title: string;
+  mode?: ClarityIssueMode;
   status: ClarityIssueStatus;
   aiSummary: string | null;
   northStar: string | null;
@@ -770,6 +778,8 @@ export interface ClarityStep {
   expectedOutcome: string | null;
   completionCriteria: string | null;
   completedAt: string | null;
+  dueAt?: string | null;
+  linkedTaskId?: string | null;
 }
 
 export interface ClarityMessage {
@@ -792,6 +802,7 @@ export interface ClarityIssueDetail {
   id: string;
   title: string;
   rawInput: string;
+  mode?: ClarityIssueMode;
   aiSummary: string | null;
   status: ClarityIssueStatus;
   emotionalIntensity: number | null;
@@ -806,6 +817,13 @@ export interface ClarityIssueDetail {
   messages: ClarityMessage[];
   checkIns: ClarityCheckIn[];
   currentStep: ClarityStep | null;
+  weekStartDate?: string | null;
+  todayStepCount?: number;
+  overdueCount?: number;
+  stepsByDay?: Record<
+    string,
+    { id: string; title: string; status: string; dueAt: string | null }[]
+  >;
   latestState?: StateSnapshotSummary | null;
   agentActions?: AgentAction[];
   currentAgentAction?: AgentAction | null;
