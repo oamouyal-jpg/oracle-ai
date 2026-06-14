@@ -10,6 +10,8 @@ import {
   MessageSquare,
   Zap,
   BookOpen,
+  Brain,
+  Bot,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
@@ -19,6 +21,8 @@ export type NavItem = {
   key:
     | "nav.commandCenter"
     | "nav.clarity"
+    | "nav.stateCheck"
+    | "nav.agentActions"
     | "nav.lifeMap"
     | "nav.domains"
     | "nav.alignment"
@@ -35,6 +39,8 @@ export type NavItem = {
 export const navItems: NavItem[] = [
   { href: "/", key: "nav.commandCenter", icon: LayoutDashboard },
   { href: "/clarity", key: "nav.clarity", icon: Sparkles },
+  { href: "/state-check", key: "nav.stateCheck", icon: Brain },
+  { href: "/agent-actions", key: "nav.agentActions", icon: Bot },
   { href: "/life-map", key: "nav.lifeMap", icon: Map },
   { href: "/domains", key: "nav.domains", icon: Layers },
   { href: "/alignment", key: "nav.alignment", icon: Activity },
@@ -51,6 +57,6 @@ export const navItems: NavItem[] = [
 export const mobileTabItems: NavItem[] = [
   navItems[0],
   navItems[1],
-  navItems[5],
-  navItems[9],
+  navItems[2],
+  navItems[6],
 ];

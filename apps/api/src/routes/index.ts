@@ -12,12 +12,16 @@ import { userRouter } from "./user.js";
 import { notificationsRouter } from "./notifications.js";
 import { authRouter } from "./auth.js";
 import { clarityRouter } from "./clarity.js";
+import { stateCheckRouter } from "./stateCheck.js";
+import { agentActionsRouter } from "./agentActions.js";
 
 export const apiRouter = Router();
 
 apiRouter.use("/auth", authRouter);
 
 apiRouter.use("/clarity", clarityRouter);
+apiRouter.use("/state-check", stateCheckRouter);
+apiRouter.use("/agent-actions", agentActionsRouter);
 
 apiRouter.use("/domains", domainsRouter);
 apiRouter.use("/missions", missionsRouter);

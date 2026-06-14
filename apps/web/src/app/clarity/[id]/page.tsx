@@ -12,7 +12,12 @@ import {
   Target,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { api, type ClarityIssueDetail, type ClarityStep } from "@/lib/api";
+import { CurrentStateCard } from "@/components/state/CurrentStateCard";
+import { PatternMatchCard } from "@/components/state/PatternMatchCard";
+import { NextSafeActionCard } from "@/components/state/NextSafeActionCard";
+import { KnownFactsVsAssumptions } from "@/components/state/KnownFactsVsAssumptions";
+import { OracleCanDoThisCard } from "@/components/agent/OracleCanDoThisCard";
+import { api, type ClarityIssueDetail, type ClarityStep, type StateDetectionResult, type AgentAction } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 export default function ClarityIssuePage() {
@@ -27,13 +32,22 @@ export default function ClarityIssuePage() {
   const [planOpen, setPlanOpen] = useState(false);
   const [clarifyAnswer, setClarifyAnswer] = useState("");
   const [checkInText, setCheckInText] = useState("");
+  const [lastStateCheck, setLastStateCheck] = useState<StateDetectionResult | null>(null);
+  const [agentAction, setAgentAction] = useState<AgentAction | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     return api
       .clarityIssue(id)
-      .then(setIssue)
-      .catch((e) => setError(e instanceof Error ? e.message : t("common.couldNotLoad")));
+      .then((data) => {
+        setIssue(data);
+        setAgentAction(data.currentAgentAction ?? null);
+        return data;
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : t("common.couldNotLoad"));
+        return null;
+      });
   }, [id, t]);
 
   useEffect(() => {
@@ -92,6 +106,7 @@ export default function ClarityIssuePage() {
     try {
       const updated = await api.clarityCheckIn(id, checkInText.trim());
       setIssue(updated);
+      setLastStateCheck(updated.stateDetection ?? null);
       setCheckInText("");
     } catch (e) {
       setError(e instanceof Error ? e.message : t("common.couldNotCreate"));
@@ -132,6 +147,58 @@ export default function ClarityIssuePage() {
   }
 
   const step = issue.currentStep;
+
+  const handleApproveAgent = async () => {
+    if (!agentAction) return;
+    setBusy(true);
+    try {
+      const approved = await api.approveAgentAction(agentAction.id);
+      setAgentAction(approved);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleExecuteAgent = async (forceSend?: boolean) => {
+    if (!agentAction) return;
+    setBusy(true);
+    try {
+      const result = await api.executeAgentAction(agentAction.id, forceSend);
+      setAgentAction(result.action);
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCancelAgent = async () => {
+    if (!agentAction) return;
+    setBusy(true);
+    try {
+      await api.cancelAgentAction(agentAction.id);
+      setAgentAction(null);
+      if (step) {
+        const detected = await api.detectAgentAction(id, step.id);
+        setAgentAction(detected);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSimulateReply = async () => {
+    if (!agentAction) return;
+    setBusy(true);
+    try {
+      await api.followThroughAgentAction(agentAction.id, {
+        eventType: "response_received",
+        eventSummary: "Reply received — agent responded positively.",
+      });
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-12">
@@ -258,6 +325,18 @@ export default function ClarityIssuePage() {
         </GlassCard>
       ) : null}
 
+      <OracleCanDoThisCard
+        action={agentAction}
+        busy={busy}
+        onApprove={() => void handleApproveAgent()}
+        onExecute={(force) => void handleExecuteAgent(force)}
+        onCancel={() => void handleCancelAgent()}
+        onSimulateReply={
+          agentAction?.status === "COMPLETED" ? () => void handleSimulateReply() : undefined
+        }
+        t={t}
+      />
+
       {issue.constraints.length > 0 ? (
         <GlassCard>
           <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
@@ -306,6 +385,24 @@ export default function ClarityIssuePage() {
             </ul>
           ) : null}
         </div>
+      ) : null}
+
+      {lastStateCheck ? (
+        <div className="space-y-4">
+          <CurrentStateCard snapshot={lastStateCheck.snapshot} t={t} />
+          <KnownFactsVsAssumptions
+            knownFacts={lastStateCheck.snapshot.knownFacts}
+            assumptions={lastStateCheck.snapshot.assumptions}
+            t={t}
+          />
+          {lastStateCheck.pattern ? <PatternMatchCard pattern={lastStateCheck.pattern} t={t} /> : null}
+          <NextSafeActionCard action={lastStateCheck.snapshot.suggestedAction} t={t} />
+        </div>
+      ) : issue.latestState?.aiReasoningSummary ? (
+        <GlassCard className="border-violet-500/20">
+          <p className="text-[10px] uppercase tracking-wide text-violet-400/80">{t("stateCheck.currentState")}</p>
+          <p className="mt-2 text-sm text-zinc-300">{issue.latestState.aiReasoningSummary}</p>
+        </GlassCard>
       ) : null}
 
       {issue.status === "ACTIVE" || issue.status === "COMPLETED" ? (

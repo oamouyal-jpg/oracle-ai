@@ -35,6 +35,12 @@ model User {
   clarityIssues      ClarityIssue[]
   clarityMessages    ClarityMessage[]
   clarityCheckIns    ClarityCheckIn[]
+  stateSnapshots     StateSnapshot[]
+  userPatterns       UserPattern[]
+  stableValues       StableValue[]
+  majorDecisionLogs  MajorDecisionLog[]
+  agentActions       ActionExecutionQueue[]
+  actionFollowThroughs ActionFollowThrough[]
 }
 
 model Domain {
@@ -281,13 +287,14 @@ model NightDebrief {
 }
 
 model JournalEntry {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content   String
-  mood      Int?
-  tags      Json     @default("[]")
-  createdAt DateTime @default(now())
+  id             String          @id @default(cuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content        String
+  mood           Int?
+  tags           Json            @default("[]")
+  stateSnapshots StateSnapshot[]
+  createdAt      DateTime        @default(now())
 }
 
 model EmotionalLog {
@@ -398,6 +405,9 @@ model ClarityIssue {
   steps              ClarityStep[]
   messages           ClarityMessage[]
   checkIns           ClarityCheckIn[]
+  stateSnapshots     StateSnapshot[]
+  majorDecisionLogs  MajorDecisionLog[]
+  agentActions       ActionExecutionQueue[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -445,6 +455,7 @@ model ClarityStep {
   expectedOutcome    String?
   completionCriteria String?
   completedAt        DateTime?
+  agentActions       ActionExecutionQueue[]
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
@@ -478,4 +489,191 @@ model ClarityMessage {
   createdAt DateTime           @default(now())
 
   @@index([issueId, createdAt])
+}
+
+// ─── State Detection: emotional/cognitive state awareness ───
+
+enum DetectedState {
+  CALM_REGULATED
+  THREAT_DETECTION
+  OVERWHELM
+  AVOIDANCE
+  OPPORTUNITY_MODE
+  GRIEF
+  SHAME_COLLAPSE
+  ANGER_DEFENSIVENESS
+  STRATEGIC_THINKING
+  RELATIONSHIP_PANIC
+  FINANCIAL_PANIC
+  DECISION_CLARITY
+  EXHAUSTION
+}
+
+model StateSnapshot {
+  id                   String            @id @default(cuid())
+  userId               String
+  user                 User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issueId              String?
+  issue                ClarityIssue?     @relation(fields: [issueId], references: [id], onDelete: SetNull)
+  journalEntryId       String?
+  journalEntry         JournalEntry?     @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+  rawInput             String
+  detectedState        DetectedState
+  secondaryState       DetectedState?
+  stateConfidence      Int               @default(70)
+  emotionalIntensity   Int
+  urgency              Int
+  factCertainty        Int
+  decisionRisk         Int
+  triggers             Json              @default("[]")
+  knownFacts           Json              @default("[]")
+  assumptions          Json              @default("[]")
+  suggestedAction      String
+  delayMajorDecisions  Boolean           @default(false)
+  delayHours           Int?
+  aiReasoningSummary   String?
+  currentImpulse       String?
+  stableValueConflict  String?
+  valuesAligned        Boolean?
+  matchedPatternId     String?
+  matchedPattern       UserPattern?      @relation(fields: [matchedPatternId], references: [id], onDelete: SetNull)
+  majorDecisionLogs    MajorDecisionLog[]
+  createdAt            DateTime          @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, detectedState])
+}
+
+model UserPattern {
+  id                   String          @id @default(cuid())
+  userId               String
+  user                 User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patternName          String
+  description          String?
+  knownTriggers        Json            @default("[]")
+  typicalThoughts      Json            @default("[]")
+  typicalBehaviors     Json            @default("[]")
+  helpfulInterventions Json            @default("[]")
+  warningSigns         Json            @default("[]")
+  relatedStates        Json            @default("[]")
+  occurrenceCount      Int             @default(1)
+  snapshots            StateSnapshot[]
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([userId])
+}
+
+model StableValue {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  valueName   String
+  description String?
+  examples    Json     @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model MajorDecisionLog {
+  id                   String         @id @default(cuid())
+  userId               String
+  user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issueId              String?
+  issue                ClarityIssue?  @relation(fields: [issueId], references: [id], onDelete: SetNull)
+  decisionText         String
+  stateSnapshotId      String?
+  stateSnapshot        StateSnapshot? @relation(fields: [stateSnapshotId], references: [id], onDelete: SetNull)
+  riskLevel            Int
+  oracleRecommendation String?
+  userFinalChoice      String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+// ─── Agent Actions: Oracle executes with approval ───
+
+enum ActionClassification {
+  HUMAN_ACTION
+  AGENT_ACTION
+  HYBRID_ACTION
+}
+
+enum AgentActionType {
+  SEND_EMAIL
+  DRAFT_EMAIL
+  DRAFT_MESSAGE
+  FOLLOW_UP
+  BOOK_APPOINTMENT
+  SCHEDULE_REMINDER
+  CREATE_CALENDAR_EVENT
+  GENERATE_REPORT
+  RESEARCH_PROVIDERS
+  PREPARE_COMPARISON
+  CREATE_CONTACT_LIST
+  GENERATE_PDF
+  TRACK_RESPONSES
+  HUMAN_TASK
+  HYBRID_PREP
+}
+
+enum ActionExecutionStatus {
+  PENDING
+  AWAITING_APPROVAL
+  APPROVED
+  EXECUTING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model ActionExecutionQueue {
+  id                String                @id @default(cuid())
+  userId            String
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issueId           String?
+  issue             ClarityIssue?         @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  actionStepId      String?
+  actionStep        ClarityStep?          @relation(fields: [actionStepId], references: [id], onDelete: SetNull)
+  classification    ActionClassification
+  actionType        AgentActionType
+  actionTitle       String
+  actionDescription String
+  status            ActionExecutionStatus @default(PENDING)
+  requiresApproval  Boolean               @default(true)
+  capabilities      Json                  @default("[]")
+  payload           Json                  @default("{}")
+  executionResult   Json                  @default("{}")
+  stateBlocked      Boolean               @default(false)
+  stateOverride     Boolean               @default(false)
+  integrationTool   String?
+  followThroughs    ActionFollowThrough[]
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  executedAt        DateTime?
+
+  @@index([userId, status])
+  @@index([issueId, actionStepId])
+}
+
+model ActionFollowThrough {
+  id              String               @id @default(cuid())
+  userId          String
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  queueId         String
+  queue           ActionExecutionQueue @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  eventType       String
+  eventSummary    String?
+  rawPayload      Json                 @default("{}")
+  processed       Boolean              @default(false)
+  nextActionHint  String?
+  createdAt       DateTime             @default(now())
+  processedAt     DateTime?
+
+  @@index([queueId, processed])
+  @@index([userId, createdAt])
 }

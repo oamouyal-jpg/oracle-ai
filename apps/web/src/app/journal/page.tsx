@@ -3,14 +3,17 @@
 import { useEffect, useState } from "react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { SpeechInputButton } from "@/components/speech/SpeechInputButton";
-import { api, type JournalEntry } from "@/lib/api";
+import { CurrentStateCard } from "@/components/state/CurrentStateCard";
+import { NextSafeActionCard } from "@/components/state/NextSafeActionCard";
+import { api, type JournalEntryWithState, type StateDetectionResult } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 export default function JournalPage() {
   const { t, speechLang } = useLocale();
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [entries, setEntries] = useState<JournalEntryWithState[]>([]);
   const [content, setContent] = useState("");
   const [mood, setMood] = useState(5);
+  const [lastState, setLastState] = useState<StateDetectionResult | null>(null);
 
   const load = () => api.journal().then(setEntries).catch(console.error);
 
@@ -20,7 +23,8 @@ export default function JournalPage() {
 
   const submit = async () => {
     if (!content.trim()) return;
-    await api.createJournal({ content: content.trim(), mood });
+    const result = await api.createJournal({ content: content.trim(), mood, runStateDetection: true });
+    setLastState(result.stateDetection);
     setContent("");
     load();
   };
@@ -74,14 +78,28 @@ export default function JournalPage() {
         </button>
       </GlassCard>
 
+      {lastState ? (
+        <div className="space-y-4">
+          <CurrentStateCard snapshot={lastState.snapshot} t={t} />
+          <NextSafeActionCard action={lastState.snapshot.suggestedAction} t={t} />
+        </div>
+      ) : null}
+
       <div className="space-y-4">
         {entries.map((e) => (
           <GlassCard key={e.id}>
             <div className="flex justify-between text-xs text-zinc-500 mb-2">
               <span>{new Date(e.createdAt).toLocaleString()}</span>
-              {e.mood != null && (
-                <span>{t("journal.moodEntry", { n: e.mood })}</span>
-              )}
+              <div className="flex gap-2">
+                {e.latestState ? (
+                  <span className="text-violet-400/90">
+                    {e.latestState.detectedState.replace(/_/g, " ").toLowerCase()}
+                  </span>
+                ) : null}
+                {e.mood != null && (
+                  <span>{t("journal.moodEntry", { n: e.mood })}</span>
+                )}
+              </div>
             </div>
             <p className="text-sm text-zinc-300 whitespace-pre-wrap">{e.content}</p>
           </GlassCard>

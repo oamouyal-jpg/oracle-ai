@@ -159,9 +159,7 @@ export const api = {
   chatHistory: () => fetchApi<ChatMessage[]>("/ai/chat/history"),
   prioritize: () => fetchApi<PrioritizeResult>("/ai/prioritize", { method: "POST" }),
   insights: () => fetchApi<Insights>("/ai/insights"),
-  journal: () => fetchApi<JournalEntry[]>("/journal"),
-  createJournal: (data: { content: string; mood?: number; tags?: string[] }) =>
-    fetchApi<JournalEntry>("/journal", { method: "POST", body: JSON.stringify(data) }),
+  journal: () => fetchApi<JournalEntryWithState[]>("/journal"),
   createMission: (data: CreateMissionInput) =>
     fetchApi<Mission>("/missions", { method: "POST", body: JSON.stringify(data) }),
   updateMission: (id: string, data: Partial<CreateMissionInput>) =>
@@ -225,10 +223,13 @@ export const api = {
       method: "POST",
     }),
   clarityCheckIn: (issueId: string, rawText: string) =>
-    fetchApi<ClarityIssueDetail & { aiSource?: string }>(`/clarity/${issueId}/check-in`, {
-      method: "POST",
-      body: JSON.stringify({ rawText }),
-    }),
+    fetchApi<ClarityIssueDetail & { aiSource?: string; stateDetection?: StateDetectionResult }>(
+      `/clarity/${issueId}/check-in`,
+      {
+        method: "POST",
+        body: JSON.stringify({ rawText }),
+      }
+    ),
   promoteClarityIssue: (issueId: string) =>
     fetchApi<ClarityIssueDetail & { missionId: string }>(`/clarity/${issueId}/promote`, {
       method: "POST",
@@ -240,6 +241,55 @@ export const api = {
     }),
   deleteClarityIssue: (id: string) =>
     fetchApi<void>(`/clarity/${id}`, { method: "DELETE" }),
+  stateSnapshots: (limit?: number) =>
+    fetchApi<StateSnapshot[]>(`/state-check${limit ? `?limit=${limit}` : ""}`),
+  latestStateSnapshot: () =>
+    fetchApi<{ snapshot: StateSnapshot | null }>("/state-check/latest"),
+  runStateCheck: (data: { rawInput: string; issueId?: string }) =>
+    fetchApi<StateDetectionResult>("/state-check", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  statePatterns: () => fetchApi<UserPattern[]>("/state-check/patterns"),
+  stableValues: () => fetchApi<StableValue[]>("/state-check/values"),
+  createStableValue: (data: { valueName: string; description?: string; examples?: string[] }) =>
+    fetchApi<StableValue>("/state-check/values", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  createJournal: (data: { content: string; mood?: number; tags?: string[]; runStateDetection?: boolean }) =>
+    fetchApi<{ entry: JournalEntry; stateDetection: StateDetectionResult | null }>("/journal", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  agentActions: (issueId?: string) =>
+    fetchApi<AgentAction[]>(`/agent-actions${issueId ? `?issueId=${issueId}` : ""}`),
+  agentIntegrations: () => fetchApi<AgentIntegrationInfo[]>("/agent-actions/integrations"),
+  detectAgentAction: (issueId: string, stepId: string) =>
+    fetchApi<AgentAction>("/agent-actions/detect", {
+      method: "POST",
+      body: JSON.stringify({ issueId, stepId }),
+    }),
+  approveAgentAction: (id: string, overrideState?: boolean) =>
+    fetchApi<AgentAction>(`/agent-actions/${id}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ overrideState }),
+    }),
+  executeAgentAction: (id: string, forceSend?: boolean) =>
+    fetchApi<{ action: AgentAction; blocked?: boolean; stateMessage?: string | null }>(
+      `/agent-actions/${id}/execute`,
+      { method: "POST", body: JSON.stringify({ forceSend }) }
+    ),
+  cancelAgentAction: (id: string) =>
+    fetchApi<AgentAction>(`/agent-actions/${id}/cancel`, { method: "POST" }),
+  followThroughAgentAction: (
+    id: string,
+    data: { eventType: string; eventSummary: string }
+  ) =>
+    fetchApi<{ nextActionHint: string; markComplete: boolean }>(
+      `/agent-actions/${id}/follow-through`,
+      { method: "POST", body: JSON.stringify(data) }
+    ),
 };
 
 export interface MorningNotificationPayload {
@@ -720,7 +770,135 @@ export interface ClarityIssueDetail {
   messages: ClarityMessage[];
   checkIns: ClarityCheckIn[];
   currentStep: ClarityStep | null;
+  latestState?: StateSnapshotSummary | null;
+  agentActions?: AgentAction[];
+  currentAgentAction?: AgentAction | null;
   promotedMission?: { id: string; title: string } | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type DetectedState =
+  | "CALM_REGULATED"
+  | "THREAT_DETECTION"
+  | "OVERWHELM"
+  | "AVOIDANCE"
+  | "OPPORTUNITY_MODE"
+  | "GRIEF"
+  | "SHAME_COLLAPSE"
+  | "ANGER_DEFENSIVENESS"
+  | "STRATEGIC_THINKING"
+  | "RELATIONSHIP_PANIC"
+  | "FINANCIAL_PANIC"
+  | "DECISION_CLARITY"
+  | "EXHAUSTION";
+
+export interface StateSnapshotSummary {
+  id?: string;
+  detectedState: DetectedState;
+  detectedStateLabel?: string;
+  emotionalIntensity: number;
+  decisionRisk: number;
+  delayMajorDecisions: boolean;
+  suggestedAction: string;
+  aiReasoningSummary?: string | null;
+}
+
+export interface StateSnapshot extends StateSnapshotSummary {
+  issueId: string | null;
+  journalEntryId: string | null;
+  rawInput: string;
+  secondaryState: DetectedState | null;
+  secondaryStateLabel: string | null;
+  stateConfidence: number;
+  urgency: number;
+  factCertainty: number;
+  triggers: string[];
+  knownFacts: string[];
+  assumptions: string[];
+  delayHours: number | null;
+  currentImpulse: string | null;
+  stableValueConflict: string | null;
+  valuesAligned: boolean | null;
+  matchedPatternId: string | null;
+  matchedPattern: UserPattern | null;
+  createdAt: string;
+}
+
+export interface UserPattern {
+  id: string;
+  patternName: string;
+  description: string | null;
+  knownTriggers: string[];
+  typicalThoughts: string[];
+  typicalBehaviors: string[];
+  helpfulInterventions: string[];
+  warningSigns: string[];
+  relatedStates: string[];
+  occurrenceCount: number;
+  updatedAt: string;
+}
+
+export interface StableValue {
+  id: string;
+  valueName: string;
+  description: string | null;
+  examples: string[];
+  updatedAt?: string;
+}
+
+export interface StateDetectionResult {
+  snapshot: StateSnapshot;
+  pattern: UserPattern | null;
+  stableValues: StableValue[];
+  source: "openai" | "offline";
+}
+
+export interface JournalEntryWithState extends JournalEntry {
+  latestState?: {
+    detectedState: DetectedState;
+    emotionalIntensity: number;
+    decisionRisk: number;
+    delayMajorDecisions: boolean;
+  } | null;
+}
+
+export type ActionClassification = "HUMAN_ACTION" | "AGENT_ACTION" | "HYBRID_ACTION";
+
+export type ActionExecutionStatus =
+  | "PENDING"
+  | "AWAITING_APPROVAL"
+  | "APPROVED"
+  | "EXECUTING"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED";
+
+export interface AgentAction {
+  id: string;
+  issueId: string | null;
+  actionStepId: string | null;
+  classification: ActionClassification;
+  actionType: string;
+  actionTitle: string;
+  actionDescription: string;
+  status: ActionExecutionStatus;
+  requiresApproval: boolean;
+  capabilities: string[];
+  payload: Record<string, unknown>;
+  executionResult: Record<string, unknown>;
+  stateBlocked: boolean;
+  stateOverride: boolean;
+  integrationTool: string | null;
+  createdAt: string;
+  executedAt: string | null;
+  updatedAt: string;
+}
+
+export interface AgentIntegrationInfo {
+  id: string;
+  category: string;
+  label: string;
+  configured: boolean;
+  available: boolean;
 }

@@ -15,6 +15,7 @@ import {
   skipCurrentStep,
   submitClarifyingAnswer,
 } from "../services/clarityEngine.js";
+import { runStateDetection } from "../services/stateDetectionEngine.js";
 
 export const clarityRouter = Router();
 
@@ -133,9 +134,22 @@ clarityRouter.post("/:id/check-in", asyncHandler(async (req, res) => {
   const locale = requestLocale(req);
   const issueId = idParam(req.params.id);
   const { rawText } = z.object({ rawText: z.string().min(3) }).parse(req.body);
-  const { source } = await processCheckIn(issueId, userId, rawText, locale);
+
+  const stateResult = await runStateDetection(userId, rawText.trim(), locale, { issueId });
+  const snap = stateResult.snapshot;
+
+  const { source } = await processCheckIn(issueId, userId, rawText, locale, {
+    detectedState: snap.detectedState,
+    emotionalIntensity: snap.emotionalIntensity,
+    factCertainty: snap.factCertainty,
+    decisionRisk: snap.decisionRisk,
+    delayMajorDecisions: snap.delayMajorDecisions,
+    suggestedAction: snap.suggestedAction,
+    aiReasoningSummary: snap.aiReasoningSummary,
+  });
+
   const detail = formatIssueDetail(await loadIssueDetail(issueId, userId));
-  res.json({ ...detail, aiSource: source });
+  res.json({ ...detail, aiSource: source, stateDetection: stateResult });
 }));
 
 clarityRouter.post("/:id/promote", asyncHandler(async (req, res) => {

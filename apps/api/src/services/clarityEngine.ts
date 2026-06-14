@@ -3,6 +3,7 @@ import { createChatCompletion } from "../lib/openai.js";
 import { asStringArray } from "../lib/arrays.js";
 import type { AppLocale } from "../lib/locale.js";
 import type { ClarityConstraintType } from "@prisma/client";
+import { queueActionsForCurrentStep, formatAgentAction } from "./actionExecutionEngine.js";
 
 const CLARITY_SYSTEM = `You are Oracle Clarity — a calm, direct life operator. You help overwhelmed people turn messy situations into one clear desired outcome and a small sequence of actions.
 
@@ -441,6 +442,7 @@ ${issue.rawInput}${qaBlock}`;
     });
   });
 
+  await queueActionsForCurrentStep(issueId, userId, locale);
   return source;
 }
 
@@ -482,6 +484,8 @@ export async function completeCurrentStep(
       });
     }
   });
+
+  await queueActionsForCurrentStep(issueId, userId, "en");
 }
 
 export async function skipCurrentStep(
@@ -518,13 +522,24 @@ export async function skipCurrentStep(
       });
     }
   });
+
+  await queueActionsForCurrentStep(issueId, userId, "en");
 }
 
 export async function processCheckIn(
   issueId: string,
   userId: string,
   rawText: string,
-  locale: AppLocale
+  locale: AppLocale,
+  stateContext?: {
+    detectedState: string;
+    emotionalIntensity: number;
+    factCertainty: number;
+    decisionRisk: number;
+    delayMajorDecisions: boolean;
+    suggestedAction: string;
+    aiReasoningSummary?: string | null;
+  }
 ): Promise<{ source: "openai" | "offline" }> {
   const issue = await prisma.clarityIssue.findFirst({
     where: { id: issueId, userId },
@@ -533,14 +548,29 @@ export async function processCheckIn(
   if (!issue) throw new Error("Issue not found");
 
   const currentStep = issue.steps[0];
+  const highRisk = stateContext?.delayMajorDecisions || (stateContext?.decisionRisk ?? 0) >= 7;
+
+  const stateBlock = stateContext
+    ? `
+State detection (run BEFORE planning):
+- Detected state: ${stateContext.detectedState}
+- Emotional intensity: ${stateContext.emotionalIntensity}/10
+- Fact certainty: ${stateContext.factCertainty}/10
+- Decision risk: ${stateContext.decisionRisk}/10
+- Delay major decisions: ${stateContext.delayMajorDecisions ? "YES" : "no"}
+${stateContext.aiReasoningSummary ? `- Oracle mirror: ${stateContext.aiReasoningSummary}` : ""}
+${highRisk ? "IMPORTANT: User is in a high-risk triggered state. Do NOT suggest aggressive, permanent, or confrontational actions. Suggest ONE stabilizing safe action only." : ""}`
+    : "";
+
   const prompt = `Daily check-in for a clarity issue. Return JSON:
 {
   "aiSummary": "2-3 sentences",
   "completedActions": ["..."],
   "newRisks": ["..."],
-  "suggestedNextAction": "one sentence",
+  "suggestedNextAction": "one sentence — stabilizing if user is triggered",
   "priorityShift": "optional — what changed in priorities"
 }
+${stateBlock}
 
 North Star: ${issue.outcome?.northStarStatement ?? "n/a"}
 Current step: ${currentStep?.title ?? "none"}
@@ -562,14 +592,24 @@ ${rawText}`;
     parsed = data;
   } else {
     parsed = {
-      aiSummary: "You showed up to reflect — that matters. Oracle captured what you wrote and will keep the next move small.",
+      aiSummary: stateContext?.aiReasoningSummary ??
+        "You showed up to reflect — that matters. Oracle captured what you wrote and will keep the next move small.",
       completedActions: [],
-      newRisks: [],
-      suggestedNextAction: currentStep
-        ? `Continue: ${currentStep.title}`
-        : "Review your North Star and pick one small external action.",
+      newRisks: stateContext?.delayMajorDecisions ? ["Acting on major decisions while triggered"] : [],
+      suggestedNextAction: highRisk && stateContext?.suggestedAction
+        ? stateContext.suggestedAction
+        : currentStep
+          ? `Continue: ${currentStep.title}`
+          : "Review your North Star and pick one small external action.",
       priorityShift: undefined,
     };
+  }
+
+  if (highRisk && stateContext?.suggestedAction) {
+    parsed.suggestedNextAction = stateContext.suggestedAction;
+    if (stateContext.aiReasoningSummary) {
+      parsed.aiSummary = stateContext.aiReasoningSummary;
+    }
   }
 
   await prisma.$transaction([
@@ -645,6 +685,7 @@ export async function promoteIssueToMission(issueId: string, userId: string): Pr
 
 export function formatIssueDetail(issue: Awaited<ReturnType<typeof loadIssueDetail>>) {
   if (!issue) return null;
+  const latestState = issue.stateSnapshots?.[0] ?? null;
   return {
     ...issue,
     pendingQuestions: asStringArray(issue.pendingQuestions),
@@ -656,6 +697,26 @@ export function formatIssueDetail(issue: Awaited<ReturnType<typeof loadIssueDeta
         }
       : null,
     currentStep: issue.steps.find((s) => s.status === "CURRENT") ?? null,
+    latestState: latestState
+      ? {
+          id: latestState.id,
+          detectedState: latestState.detectedState,
+          emotionalIntensity: latestState.emotionalIntensity,
+          decisionRisk: latestState.decisionRisk,
+          delayMajorDecisions: latestState.delayMajorDecisions,
+          suggestedAction: latestState.suggestedAction,
+          aiReasoningSummary: latestState.aiReasoningSummary,
+        }
+      : null,
+    agentActions: (issue.agentActions ?? []).map(formatAgentAction),
+    currentAgentAction: (() => {
+      const currentStepId = issue.steps.find((s) => s.status === "CURRENT")?.id;
+      const raw = (issue.agentActions ?? []).find(
+        (a) => a.actionStepId === currentStepId && a.status !== "CANCELLED"
+      );
+      return raw ? formatAgentAction(raw) : null;
+    })(),
+    stateSnapshots: undefined,
   };
 }
 
@@ -668,6 +729,12 @@ export async function loadIssueDetail(issueId: string, userId: string) {
       steps: { orderBy: { priorityOrder: "asc" } },
       messages: { orderBy: { createdAt: "asc" }, take: 40 },
       checkIns: { orderBy: { createdAt: "desc" }, take: 5 },
+      stateSnapshots: { orderBy: { createdAt: "desc" }, take: 1, include: { matchedPattern: true } },
+      agentActions: {
+        where: { status: { not: "CANCELLED" } },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      },
       promotedMission: { select: { id: true, title: true } },
     },
   });
