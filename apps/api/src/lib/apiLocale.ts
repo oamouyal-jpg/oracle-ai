@@ -13,6 +13,11 @@ const S = {
     he: "בוקר טוב, {name}",
     fr: "Bonjour, {name}",
   },
+  morningOracleTitle: {
+    en: "Daily Oracle · {name}",
+    he: "Oracle יומי · {name}",
+    fr: "Oracle du jour · {name}",
+  },
   morningFallback: {
     en: "Open Oracle and review your top priorities.",
     he: "פתח את Oracle ועבור על העדיפויות שלך.",

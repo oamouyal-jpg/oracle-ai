@@ -81,8 +81,9 @@ const en = {
   },
   notifications: {
     morningTitle: "Morning notifications",
-    morningHint: "Get a daily nudge with your #1 task when you open Oracle after your chosen time. Add Oracle to your home screen for the best phone experience.",
-    enableMorning: "Morning briefing alert",
+    morningHint:
+      "Get your Daily Oracle line and #1 focus task after your chosen time. Add Oracle to your home screen for the best phone experience.",
+    enableMorning: "Daily Oracle morning alert",
     timeLabel: "Time",
     enabled: "Morning notifications enabled",
     denied: "Notifications blocked — enable them in your phone settings.",
@@ -643,8 +644,9 @@ const he: Messages = {
   },
   notifications: {
     morningTitle: "התראות בוקר",
-    morningHint: "קבל תזכורת יומית עם משימה #1 כשתפתח את Oracle אחרי השעה שבחרת. הוסף ל-Oracle למסך הבית לחוויית אפליקציה.",
-    enableMorning: "התראת תדרוך בוקר",
+    morningHint:
+      "קבל את שורת Oracle היומית ומשימת המיקוד #1 אחרי השעה שבחרת. הוסף ל-Oracle למסך הבית לחוויית אפליקציה.",
+    enableMorning: "התראת Oracle יומי בבוקר",
     timeLabel: "שעה",
     enabled: "התראות בוקר הופעלו",
     denied: "התראות חסומות — אפשר אותן בהגדרות הטלפון.",
@@ -1199,8 +1201,9 @@ const fr: Messages = {
   },
   notifications: {
     morningTitle: "Notifications du matin",
-    morningHint: "Recevez un rappel quotidien avec votre tâche #1 en ouvrant Oracle après l'heure choisie. Ajoutez Oracle à l'écran d'accueil pour une meilleure expérience mobile.",
-    enableMorning: "Alerte briefing matinal",
+    morningHint:
+      "Recevez votre phrase Oracle du jour et la tâche focus n°1 après l'heure choisie. Ajoutez Oracle à l'écran d'accueil pour une meilleure expérience mobile.",
+    enableMorning: "Alerte Oracle du matin",
     timeLabel: "Heure",
     enabled: "Notifications du matin activées",
     denied: "Notifications bloquées — activez-les dans les réglages du téléphone.",

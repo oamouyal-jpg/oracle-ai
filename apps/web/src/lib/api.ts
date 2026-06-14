@@ -303,6 +303,8 @@ export interface MorningNotificationPayload {
   title: string;
   body: string;
   url: string;
+  dailyOracleLine: string;
+  dailyOracleSubline: string | null;
   topTaskTitle: string | null;
   focusRecommendation: string | null;
 }
