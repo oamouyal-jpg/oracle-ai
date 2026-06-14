@@ -214,7 +214,7 @@ HYBRID_ACTION = Oracle prepares, user finalizes (send, sign, visit).`;
     messages: [
       {
         role: "system",
-        content: `Classify actions for Oracle Agent execution. ${localeHint(locale)}`,
+        content: `Classify actions for Oracle Agent execution. Return json. ${localeHint(locale)}`,
       },
       { role: "user", content: prompt },
     ],

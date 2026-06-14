@@ -442,7 +442,9 @@ ${issue.rawInput}${qaBlock}`;
     });
   });
 
-  await queueActionsForCurrentStep(issueId, userId, locale);
+  await queueActionsForCurrentStep(issueId, userId, locale).catch((err) => {
+    console.warn("[Oracle] Agent action queue skipped:", err instanceof Error ? err.message : err);
+  });
   return source;
 }
 
@@ -485,7 +487,9 @@ export async function completeCurrentStep(
     }
   });
 
-  await queueActionsForCurrentStep(issueId, userId, "en");
+  await queueActionsForCurrentStep(issueId, userId, "en").catch((err) => {
+    console.warn("[Oracle] Agent action queue skipped:", err instanceof Error ? err.message : err);
+  });
 }
 
 export async function skipCurrentStep(
@@ -523,7 +527,9 @@ export async function skipCurrentStep(
     }
   });
 
-  await queueActionsForCurrentStep(issueId, userId, "en");
+  await queueActionsForCurrentStep(issueId, userId, "en").catch((err) => {
+    console.warn("[Oracle] Agent action queue skipped:", err instanceof Error ? err.message : err);
+  });
 }
 
 export async function processCheckIn(

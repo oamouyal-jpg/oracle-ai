@@ -90,6 +90,30 @@ export type ChatCompletionResult =
   | { ok: true; completion: OpenAI.Chat.Completions.ChatCompletion }
   | { ok: false; reason: string };
 
+const JSON_MODE_HINT = "Respond with valid json only.";
+
+/** OpenAI requires the word "json" in messages when using response_format json_object. */
+function ensureJsonHintInMessages(
+  messages: OpenAI.Chat.ChatCompletionMessageParam[]
+): OpenAI.Chat.ChatCompletionMessageParam[] {
+  const hasJson = messages.some(
+    (m) => typeof m.content === "string" && /json/i.test(m.content)
+  );
+  if (hasJson) return messages;
+
+  const copy = [...messages];
+  const systemIdx = copy.findIndex((m) => m.role === "system");
+  if (systemIdx >= 0 && typeof copy[systemIdx]!.content === "string") {
+    copy[systemIdx] = {
+      ...copy[systemIdx]!,
+      content: `${copy[systemIdx]!.content as string}\n${JSON_MODE_HINT}`,
+    };
+  } else {
+    copy.unshift({ role: "system", content: JSON_MODE_HINT });
+  }
+  return copy;
+}
+
 /** Returns failure reason when no key, invalid key, or auth failure — caller should use offline fallback. */
 export async function createChatCompletion(
   params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming
@@ -99,18 +123,29 @@ export async function createChatCompletion(
     return { ok: false, reason: lastFallbackReason ?? "OpenAI client not configured" };
   }
 
+  const requestParams =
+    params.response_format?.type === "json_object"
+      ? { ...params, messages: ensureJsonHintInMessages(params.messages) }
+      : params;
+
   try {
-    const completion = await openai.chat.completions.create(params);
+    const completion = await openai.chat.completions.create(requestParams);
     return { ok: true, completion };
   } catch (err) {
-    if (isOpenAIAuthError(err)) {
-      const reason = "OPENAI_API_KEY rejected by OpenAI (invalid or expired)";
-      lastFallbackReason = reason;
-      if (!invalidKeyWarned) {
-        console.warn(`[Oracle] ${reason} — using offline strategist`);
-        invalidKeyWarned = true;
+    if (err instanceof OpenAI.APIError) {
+      if (err.status === 401 || err.status === 403) {
+        const reason = "OPENAI_API_KEY rejected by OpenAI (invalid or expired)";
+        lastFallbackReason = reason;
+        if (!invalidKeyWarned) {
+          console.warn(`[Oracle] ${reason} — using offline strategist`);
+          invalidKeyWarned = true;
+        }
+        return { ok: false, reason };
       }
-      return { ok: false, reason };
+      if (err.status === 400) {
+        console.warn(`[Oracle] OpenAI 400 — falling back offline: ${err.message}`);
+        return { ok: false, reason: err.message };
+      }
     }
     throw err;
   }

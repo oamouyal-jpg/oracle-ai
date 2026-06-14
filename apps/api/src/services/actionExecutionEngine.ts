@@ -300,7 +300,7 @@ export async function processFollowThroughEvent(
 
   let nextActionHint = "Review the outcome and confirm the next move.";
 
-  const prompt = `An Oracle agent action received a follow-through event. Suggest ONE next action (JSON):
+  const prompt = `An Oracle agent action received a follow-through event. Suggest ONE next action. Return json:
 {"nextActionHint": "string", "markStepComplete": boolean, "newPriority": "optional string"}
 
 Action completed: ${queue.actionTitle}
