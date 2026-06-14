@@ -7,7 +7,8 @@ import { ArrowRight, Sparkles, AlertTriangle } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { QuickCheckIn } from "@/components/alignment/QuickCheckIn";
-import { api, type DashboardData } from "@/lib/api";
+import { DailyOracleMoment } from "@/components/dashboard/DailyOracleMoment";
+import { api, type DashboardData, type DailyOracleLine } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
   localizeApiPhrase,
@@ -16,25 +17,68 @@ import {
   localizeTaskTitle,
 } from "@/lib/i18n/localizeContent";
 
+const DAILY_DISMISS_KEY = "oracle-daily-dismissed";
+
+function localDateKey() {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
 export default function CommandCenter() {
   const { t, locale } = useLocale();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [dailyOracle, setDailyOracle] = useState<DailyOracleLine | null>(null);
+  const [dailyOracleLoading, setDailyOracleLoading] = useState(true);
+  const [dailyMomentOpen, setDailyMomentOpen] = useState(false);
   const [insights, setInsights] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    Promise.all([api.dashboard(), api.insights()])
-      .then(([d, i]) => {
+    const dismissed = localStorage.getItem(DAILY_DISMISS_KEY) === localDateKey();
+    setDailyMomentOpen(!dismissed);
+    setDailyOracleLoading(true);
+
+    Promise.all([api.dashboard(), api.insights(), api.dailyOracleToday()])
+      .then(([d, i, oracle]) => {
         setData(d);
+        setDailyOracle(oracle);
         setInsights([
           ...(d.alignmentRecommendations ?? []),
           ...(d.frictionInsights ?? []),
           ...i.proactivePrompts,
         ]);
+        setError(null);
       })
-      .catch(() => setError(t("common.connectApiError")));
-  }, [refreshKey, locale]);
+      .catch(() => setError(t("common.connectApiError")))
+      .finally(() => setDailyOracleLoading(false));
+  }, [refreshKey, locale, t]);
+
+  const dismissDailyMoment = () => {
+    localStorage.setItem(DAILY_DISMISS_KEY, localDateKey());
+    setDailyMomentOpen(false);
+  };
+
+  if (dailyMomentOpen && !error) {
+    return (
+      <DailyOracleMoment
+        line={
+          dailyOracle ?? {
+            id: "",
+            date: new Date().toISOString(),
+            line: "",
+            subline: null,
+            source: "offline",
+          }
+        }
+        loading={dailyOracleLoading || !dailyOracle}
+        onContinue={dismissDailyMoment}
+        t={t}
+      />
+    );
+  }
 
   if (error) {
     return (
@@ -82,6 +126,20 @@ export default function CommandCenter() {
           </Link>
         }
       />
+
+      {dailyOracle?.line ? (
+        <GlassCard glow className="border-indigo-400/25 bg-gradient-to-br from-indigo-500/10 to-violet-500/5">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-indigo-300/80 mb-2">
+            {t("dailyOracle.todayLine")}
+          </p>
+          <p className="text-lg font-light leading-relaxed text-zinc-50 glow-text">
+            {dailyOracle.line}
+          </p>
+          {dailyOracle.subline ? (
+            <p className="mt-2 text-sm text-zinc-400">{dailyOracle.subline}</p>
+          ) : null}
+        </GlassCard>
+      ) : null}
 
       <Link href="/clarity/new">
         <GlassCard
@@ -135,7 +193,7 @@ export default function CommandCenter() {
         </GlassCard>
       )}
 
-      {briefing?.strategicGuidance && (
+      {briefing?.strategicGuidance && !dailyOracle?.line ? (
         <GlassCard glow delay={0.1}>
           <p className="text-xs uppercase tracking-widest text-indigo-400 mb-2">
             {t("dashboard.oracleGuidance")}
@@ -144,7 +202,7 @@ export default function CommandCenter() {
             {localizeApiPhrase(briefing.strategicGuidance, locale)}
           </p>
         </GlassCard>
-      )}
+      ) : null}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <GlassCard className="lg:col-span-2" delay={0.15}>

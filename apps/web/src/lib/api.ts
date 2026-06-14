@@ -139,6 +139,9 @@ export const api = {
   briefingToday: () => fetchApi<Briefing>("/briefing/today"),
   regenerateBriefing: () =>
     fetchApi<Briefing>("/briefing/regenerate", { method: "POST" }),
+  dailyOracleToday: () => fetchApi<DailyOracleLine>("/daily-oracle/today"),
+  regenerateDailyOracle: () =>
+    fetchApi<DailyOracleLine>("/daily-oracle/regenerate", { method: "POST" }),
   debriefQuestions: () => fetchApi<DebriefQuestions>("/debrief/questions"),
   debriefToday: () => fetchApi<NightDebrief | null>("/debrief/today"),
   submitDebrief: (responses: Record<string, string>) =>
@@ -557,6 +560,14 @@ export interface Briefing {
   missionProgress: string;
   strategicGuidance: string;
   fullContent?: string;
+}
+
+export interface DailyOracleLine {
+  id: string;
+  date: string;
+  line: string;
+  subline: string | null;
+  source: "openai" | "offline";
 }
 
 export interface NightDebrief {

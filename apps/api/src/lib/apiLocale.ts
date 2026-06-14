@@ -450,3 +450,55 @@ export function mockFollowUpAcknowledgment(
         : `Noted. What's the single next action on "${taskTitle}" in the next 24 hours?`)
   );
 }
+
+type OracleContext = Record<string, unknown>;
+
+function pickMissionTitle(ctx: OracleContext): string | null {
+  const missions = ctx.activeMissions as { title?: string }[] | undefined;
+  return missions?.[0]?.title ?? null;
+}
+
+function pickClarityTitle(ctx: OracleContext): string | null {
+  const clarity = ctx.clarity as { title?: string }[] | undefined;
+  return clarity?.[0]?.title ?? null;
+}
+
+export function mockDailyOracleLine(
+  name: string,
+  locale: AppLocale,
+  ctx: OracleContext = {}
+): { line: string; subline: string | null } {
+  const mission = pickMissionTitle(ctx);
+  const clarity = pickClarityTitle(ctx);
+  const focus = mission ?? clarity;
+
+  const templates: Record<
+    AppLocale,
+    { line: (n: string, f: string | null) => string; subline: string }
+  > = {
+    en: {
+      line: (n, f) =>
+        f
+          ? `${n}, today isn't about doing everything — it's about unblocking "${f}".`
+          : `${n}, one honest move today beats a perfect plan you'll postpone.`,
+      subline: "Open your focus queue when you're ready — Oracle already prioritized.",
+    },
+    he: {
+      line: (n, f) =>
+        f
+          ? `${n}, היום לא עושים הכל — היום מסירים חסם אחד ב-"${f}".`
+          : `${n}, צעד אחד כנה היום עדיף על תוכנית מושלמת שידחו.`,
+      subline: "כשתהיה מוכן — תור המיקוד כבר מחכה.",
+    },
+    fr: {
+      line: (n, f) =>
+        f
+          ? `${n}, aujourd'hui ce n'est pas tout faire — c'est débloquer « ${f} ».`
+          : `${n}, un geste honnête aujourd'hui vaut mieux qu'un plan parfait reporté.`,
+      subline: "Quand vous voulez — la file focus est déjà priorisée.",
+    },
+  };
+
+  const t = templates[locale] ?? templates.en;
+  return { line: t.line(name, focus), subline: t.subline };
+}

@@ -167,6 +167,13 @@ const en = {
     clarityPromoBody: "One big issue → North Star → your next step. Dump the mess and Oracle finds the move.",
     clarityPromoCta: "Start Clarity",
   },
+  dailyOracle: {
+    label: "Daily Oracle",
+    generating: "Oracle is reading your day…",
+    continue: "Enter Command Center",
+    hint: "One line per day — tailored to your missions and clarity.",
+    todayLine: "Today's Oracle",
+  },
   reflection: {
     title: "Quick reflection",
     subtitle: "Progress isn't only checkboxes — tell Oracle what actually happened.",
@@ -720,6 +727,13 @@ const he: Messages = {
     clarityPromoBody: "נושא אחד → כוכב צפון → הצעד הבא. שפוך את הבלגן ו-Oracle ימצא את המהלך.",
     clarityPromoCta: "התחל בהירות",
   },
+  dailyOracle: {
+    label: "Oracle יומי",
+    generating: "Oracle קורא את היום שלך…",
+    continue: "כניסה למרכז הפיקוד",
+    hint: "שורה אחת ביום — מותאמת למשימות ולבהירות שלך.",
+    todayLine: "Oracle של היום",
+  },
   reflection: {
     title: "רפלקציה מהירה",
     subtitle: "התקדמות היא לא רק סימון משימות — ספר ל-Oracle מה באמת קרה.",
@@ -1269,6 +1283,13 @@ const fr: Messages = {
     clarityPromoTitle: "Nouveau : Clarté",
     clarityPromoBody: "Un grand enjeu → étoile polaire → prochain pas. Pose le chaos, Oracle trouve l'action.",
     clarityPromoCta: "Commencer Clarté",
+  },
+  dailyOracle: {
+    label: "Oracle du jour",
+    generating: "Oracle lit votre journée…",
+    continue: "Entrer au centre de commande",
+    hint: "Une phrase par jour — adaptée à vos missions et à votre clarté.",
+    todayLine: "Oracle d'aujourd'hui",
   },
   reflection: {
     title: "Réflexion rapide",

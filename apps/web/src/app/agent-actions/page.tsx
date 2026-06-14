@@ -8,7 +8,7 @@ import { api, type AgentAction } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 export default function AgentActionsPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [actions, setActions] = useState<AgentAction[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -16,7 +16,7 @@ export default function AgentActionsPage() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [locale]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-12">
