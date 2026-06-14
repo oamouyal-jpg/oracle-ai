@@ -14,28 +14,52 @@ export function speechSynthesisSupported(): boolean {
 
 /** Collapse stutter repeats from the speech engine (e.g. "hello hello hello"). */
 export function normalizeSpeechSession(text: string): string {
-  const words = text.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
-  if (words.length === 0) return "";
-  const out: string[] = [words[0]!];
-  for (let i = 1; i < words.length; i++) {
-    const w = words[i]!;
-    const prev = out[out.length - 1]!;
-    if (w.toLowerCase() !== prev.toLowerCase()) out.push(w);
+  let s = text.replace(/\s+/g, " ").trim();
+  if (!s) return "";
+
+  const words = s.split(" ").filter(Boolean);
+  const deduped: string[] = [];
+  for (const w of words) {
+    const prev = deduped[deduped.length - 1];
+    if (!prev || w.toLowerCase() !== prev.toLowerCase()) deduped.push(w);
   }
-  return out.join(" ");
+  s = deduped.join(" ");
+
+  // "hello world hello world" → "hello world"
+  if (s.length > 6) {
+    for (let split = Math.floor(s.length / 2); split >= 4; split--) {
+      const head = s.slice(0, split).trim();
+      const tail = s.slice(split).trim();
+      if (tail === head || tail.startsWith(`${head} `) || tail.startsWith(head)) {
+        s = head;
+        break;
+      }
+    }
+  }
+
+  return s;
 }
 
-/** Merge text that existed before mic started with the current utterance session. */
+/**
+ * Merge pre-mic text with the current listening session.
+ * Session replaces in place while listening — never stack on itself.
+ */
 export function mergeVoiceIntoField(prefix: string, sessionText: string): string {
   const base = prefix.trimEnd();
   const session = normalizeSpeechSession(sessionText);
   if (!session) return base;
-  return base ? `${base} ${session}` : session;
-}
+  if (!base) return session;
 
-/** @deprecated Use mergeVoiceIntoField with value/onValueChange on SpeechInputButton instead. */
-export function appendVoiceTranscript(prev: string, chunk: string, isFinal: boolean): string {
-  return mergeVoiceIntoField(prev.replace(/\s*\[…\]$/, "").trimEnd(), chunk);
+  const baseLower = base.toLowerCase();
+  const sessionLower = session.toLowerCase();
+
+  if (baseLower === sessionLower) return base;
+  if (baseLower.endsWith(sessionLower)) return base;
+  if (sessionLower.startsWith(baseLower)) {
+    return session.slice(base.length).trimStart() ? session : base;
+  }
+
+  return `${base} ${session}`;
 }
 
 export function useSpeechRecognition(options: {
@@ -47,19 +71,25 @@ export function useSpeechRecognition(options: {
   const [error, setError] = useState<string | null>(null);
   const recRef = useRef<SpeechRecognition | null>(null);
   const onTranscriptRef = useRef(options.onTranscript);
-  const lastSessionRef = useRef("");
+  const committedRef = useRef("");
+  const lastEmittedRef = useRef("");
   onTranscriptRef.current = options.onTranscript;
 
   useEffect(() => {
     setSupported(speechRecognitionSupported());
   }, []);
 
+  const resetSession = useCallback(() => {
+    committedRef.current = "";
+    lastEmittedRef.current = "";
+  }, []);
+
   const stop = useCallback(() => {
     recRef.current?.stop();
     recRef.current = null;
     setListening(false);
-    lastSessionRef.current = "";
-  }, []);
+    resetSession();
+  }, [resetSession]);
 
   const start = useCallback(() => {
     if (!speechRecognitionSupported()) {
@@ -67,7 +97,8 @@ export function useSpeechRecognition(options: {
       return;
     }
     setError(null);
-    lastSessionRef.current = "";
+    resetSession();
+
     const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
     const rec = new Ctor();
     rec.continuous = true;
@@ -75,18 +106,27 @@ export function useSpeechRecognition(options: {
     rec.lang = options.lang ?? "en-US";
 
     rec.onresult = (event: SpeechRecognitionEvent) => {
-      let committed = "";
       let interim = "";
-      for (let i = 0; i < event.results.length; i++) {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
         const r = event.results[i];
-        const part = r[0]?.transcript ?? "";
-        if (r.isFinal) committed += part;
-        else interim += part;
+        const part = (r[0]?.transcript ?? "").trim();
+        if (!part) continue;
+        if (r.isFinal) {
+          committedRef.current = normalizeSpeechSession(
+            `${committedRef.current} ${part}`.trim()
+          );
+        } else {
+          interim = interim ? `${interim} ${part}` : part;
+        }
       }
-      const sessionText = normalizeSpeechSession(committed + interim);
-      const hasInterim = interim.trim().length > 0;
-      if (sessionText === lastSessionRef.current && hasInterim) return;
-      lastSessionRef.current = sessionText;
+
+      const sessionText = normalizeSpeechSession(
+        interim ? `${committedRef.current} ${interim}`.trim() : committedRef.current
+      );
+      const hasInterim = interim.length > 0;
+
+      if (!sessionText || sessionText === lastEmittedRef.current) return;
+      lastEmittedRef.current = sessionText;
       onTranscriptRef.current(sessionText, !hasInterim);
     };
 
@@ -95,18 +135,18 @@ export function useSpeechRecognition(options: {
         setError(e.error === "not-allowed" ? "Microphone permission denied." : "Voice input failed.");
       }
       setListening(false);
-      lastSessionRef.current = "";
+      resetSession();
     };
 
     rec.onend = () => {
       setListening(false);
-      lastSessionRef.current = "";
+      resetSession();
     };
 
     recRef.current = rec;
     rec.start();
     setListening(true);
-  }, [options.lang]);
+  }, [options.lang, resetSession]);
 
   const toggle = useCallback(() => {
     if (listening) stop();

@@ -24,16 +24,13 @@ export function SpeechInputButton({
   title = "Voice input",
   lang,
 }: Props) {
+  /** Text in the field before this mic session — fixed until mic stops. */
   const prefixRef = useRef("");
 
   const { listening, supported, error, toggle, stop } = useSpeechRecognition({
     lang,
-    onTranscript: (sessionText, isFinal) => {
+    onTranscript: (sessionText) => {
       onValueChange(mergeVoiceIntoField(prefixRef.current, sessionText));
-      onListeningChange?.(!isFinal);
-      if (isFinal) {
-        prefixRef.current = mergeVoiceIntoField(prefixRef.current, sessionText);
-      }
     },
   });
 
