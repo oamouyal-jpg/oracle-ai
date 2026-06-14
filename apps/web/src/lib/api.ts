@@ -204,6 +204,11 @@ export const api = {
   updateProfile: (data: { name?: string; energyLevel?: number }) =>
     fetchApi<UserProfile>("/user/profile", { method: "PATCH", body: JSON.stringify(data) }),
   morningNotification: () => fetchApi<MorningNotificationPayload>("/notifications/morning"),
+  taskReminders: () => fetchApi<TaskReminderPayload[]>("/notifications/task-reminders"),
+  ackTaskReminder: (taskId: string) =>
+    fetchApi<{ ok: boolean }>(`/notifications/task-reminders/${taskId}/ack`, {
+      method: "POST",
+    }),
   clarityIssues: (status?: string) =>
     fetchApi<ClarityIssueListItem[]>(`/clarity${status ? `?status=${status}` : ""}`),
   clarityIssue: (id: string) => fetchApi<ClarityIssueDetail>(`/clarity/${id}`),
@@ -307,6 +312,17 @@ export interface MorningNotificationPayload {
   dailyOracleSubline: string | null;
   topTaskTitle: string | null;
   focusRecommendation: string | null;
+}
+
+export interface TaskReminderPayload {
+  taskId: string;
+  title: string;
+  body: string;
+  url: string;
+  dueDate: string | null;
+  scheduledAt: string | null;
+  reminderAt: string;
+  overdue: boolean;
 }
 
 export interface Domain {
@@ -464,6 +480,9 @@ export interface Task {
   completionNote?: string | null;
   mission?: { id: string; title: string };
   missionId?: string | null;
+  dueDate?: string | null;
+  scheduledAt?: string | null;
+  reminderAt?: string | null;
 }
 
 export interface FocusFollowUp {

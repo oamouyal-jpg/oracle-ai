@@ -28,6 +28,31 @@ const S = {
     he: "משימה #1: {task}",
     fr: "Tâche n°1 : {task}",
   },
+  taskReminderTitle: {
+    en: "Task reminder · {name}",
+    he: "תזכורת משימה · {name}",
+    fr: "Rappel tâche · {name}",
+  },
+  taskReminderOverdue: {
+    en: "Overdue: \"{task}\" — schedule a 20-min block or reschedule.",
+    he: "באיחור: \"{task}\" — קבע בלוק 20 דק׳ או תזמן מחדש.",
+    fr: "En retard : « {task} » — bloquez 20 min ou reportez.",
+  },
+  taskReminderDueToday: {
+    en: "Due today: \"{task}\" — time to execute or update Oracle.",
+    he: "מגיע היום: \"{task}\" — זמן לבצע או לעדכן את Oracle.",
+    fr: "Pour aujourd'hui : « {task} » — exécutez ou mettez Oracle à jour.",
+  },
+  taskReminderScheduled: {
+    en: "Scheduled now: \"{task}\" — you blocked time for this.",
+    he: "מתוזמן עכשיו: \"{task}\" — שמרת זמן לזה.",
+    fr: "Prévu maintenant : « {task} » — vous avez réservé du temps.",
+  },
+  taskReminderGeneric: {
+    en: "Reminder: \"{task}\" is waiting on you.",
+    he: "תזכורת: \"{task}\" מחכה לך.",
+    fr: "Rappel : « {task} » vous attend.",
+  },
   focusBlock20Title: {
     en: "20-min block: advance {mission}",
     he: "בלוק 20 דק׳: קדם את {mission}",

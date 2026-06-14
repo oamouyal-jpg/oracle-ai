@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { TaskScheduleEditor } from "@/components/tasks/TaskScheduleEditor";
 import {
   api,
   type FocusFollowUp,
@@ -16,6 +17,7 @@ import {
   localizeTaskStatus,
   localizeTaskTitle,
 } from "@/lib/i18n/localizeContent";
+import { formatTaskDueLabel } from "@/lib/taskScheduling";
 
 export default function TasksPage() {
   const { t, locale } = useLocale();
@@ -27,6 +29,8 @@ export default function TasksPage() {
   const [replenishMsg, setReplenishMsg] = useState<string | null>(null);
   const [progressDrafts, setProgressDrafts] = useState<Record<string, string>>({});
   const [submittingFollowUp, setSubmittingFollowUp] = useState<string | null>(null);
+  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+  const [showCreateTask, setShowCreateTask] = useState(false);
 
   const statuses = useMemo(
     (): { value: TaskStatus; label: string; color: string }[] => [
@@ -101,6 +105,39 @@ export default function TasksPage() {
   const setStatus = async (id: string, status: TaskStatus) => {
     const result = await api.updateTask(id, { status });
     if (result.replenished?.created) notify(t("tasks.replenished"));
+    await load();
+  };
+
+  const saveSchedule = async (
+    taskId: string,
+    data: {
+      title?: string;
+      dueDate: string | null;
+      scheduledAt: string | null;
+      reminderAt: string | null;
+    }
+  ) => {
+    await api.updateTask(taskId, data);
+    setEditingScheduleId(null);
+    await load();
+  };
+
+  const createTask = async (data: {
+    title?: string;
+    dueDate: string | null;
+    scheduledAt: string | null;
+    reminderAt: string | null;
+  }) => {
+    if (!data.title) return;
+    await api.createTask({
+      title: data.title,
+      dueDate: data.dueDate ?? undefined,
+      scheduledAt: data.scheduledAt ?? undefined,
+      reminderAt: data.reminderAt ?? undefined,
+      aiGenerated: false,
+    });
+    setShowCreateTask(false);
+    notify(t("tasks.taskAdded"));
     await load();
   };
 
@@ -201,6 +238,15 @@ export default function TasksPage() {
   const renderTaskRow = (task: Task, rank?: number, assisted = false) => {
     const followUp = followUpByTask.get(task.id);
     const open = !isClosed(task.status);
+    const due = formatTaskDueLabel(task.dueDate, t, locale);
+    const scheduled = task.scheduledAt
+      ? `${t("tasks.scheduled")}: ${new Date(task.scheduledAt).toLocaleString(locale, {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}`
+      : null;
 
     return (
       <li key={task.id} className="py-4 first:pt-0 last:pb-0">
@@ -233,6 +279,28 @@ export default function TasksPage() {
                     {localizeMissionTitle(task.mission.title, locale)}
                   </p>
                 )}
+                {(due || scheduled) && (
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {due ? (
+                      <span
+                        className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border ${
+                          due.overdue
+                            ? "border-rose-500/40 text-rose-300"
+                            : due.dueToday
+                              ? "border-amber-500/40 text-amber-300"
+                              : "border-zinc-600 text-zinc-500"
+                        }`}
+                      >
+                        {due.text}
+                      </span>
+                    ) : null}
+                    {scheduled ? (
+                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border border-indigo-500/30 text-indigo-300/90">
+                        {scheduled}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
               </div>
             </div>
             {assisted && task.description && open && (
@@ -244,6 +312,16 @@ export default function TasksPage() {
               </div>
             )}
             {renderFollowUp(task, followUp)}
+            {open && editingScheduleId === task.id ? (
+              <div className="mt-3 ml-8">
+                <TaskScheduleEditor
+                  task={task}
+                  t={t}
+                  onSave={(data) => saveSchedule(task.id, data)}
+                  onCancel={() => setEditingScheduleId(null)}
+                />
+              </div>
+            ) : null}
             <div className="flex gap-3 mt-1 ml-8 text-[10px] text-zinc-600">
               {task.emotionalDifficulty != null && (
                 <span>
@@ -264,6 +342,15 @@ export default function TasksPage() {
         </div>
         {open && (
           <div className="flex flex-wrap gap-1.5 mt-3 ml-8">
+            <button
+              type="button"
+              onClick={() =>
+                setEditingScheduleId(editingScheduleId === task.id ? null : task.id)
+              }
+              className="text-[10px] px-2 py-1 rounded-lg border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10"
+            >
+              {t("tasks.scheduleBtn")}
+            </button>
             {statuses.map((s) => (
               <button
                 key={s.value}
@@ -308,6 +395,29 @@ export default function TasksPage() {
           <p className="text-sm text-rose-200/90">{loadError}</p>
         </GlassCard>
       )}
+
+      <GlassCard>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <h2 className="text-sm font-medium text-zinc-300">{t("tasks.addTask")}</h2>
+          <button
+            type="button"
+            onClick={() => setShowCreateTask(!showCreateTask)}
+            className="text-xs text-indigo-300 hover:text-indigo-100"
+          >
+            {showCreateTask ? t("common.cancel") : "+"}
+          </button>
+        </div>
+        {showCreateTask ? (
+          <TaskScheduleEditor
+            createMode
+            t={t}
+            onSave={createTask}
+            onCancel={() => setShowCreateTask(false)}
+          />
+        ) : (
+          <p className="text-xs text-zinc-600">{t("tasks.newTaskPlaceholder")}</p>
+        )}
+      </GlassCard>
 
       <section>
         <div className="mb-3">

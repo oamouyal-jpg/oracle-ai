@@ -5,6 +5,7 @@ import {
   maybeSendMorningNotification,
   registerOracleServiceWorker,
 } from "@/lib/morningNotifications";
+import { maybeSendTaskReminders } from "@/lib/taskScheduling";
 
 export function MorningNotificationRunner() {
   useEffect(() => {
@@ -12,6 +13,7 @@ export function MorningNotificationRunner() {
 
     const tick = () => {
       maybeSendMorningNotification().catch(() => {});
+      maybeSendTaskReminders().catch(() => {});
     };
 
     tick();

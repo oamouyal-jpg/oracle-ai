@@ -73,6 +73,8 @@ tasksRouter.post("/", async (req, res) => {
       missionId: z.string().optional(),
       priority: z.number().optional(),
       dueDate: z.string().datetime().optional(),
+      scheduledAt: z.string().datetime().optional(),
+      reminderAt: z.string().datetime().optional(),
       recurring: z.boolean().optional(),
       aiGenerated: z.boolean().optional(),
       energyCost: z.number().optional(),
@@ -89,6 +91,8 @@ tasksRouter.post("/", async (req, res) => {
       missionId: body.missionId,
       priority: body.priority ?? 50,
       dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
+      scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : undefined,
+      reminderAt: body.reminderAt ? new Date(body.reminderAt) : undefined,
       recurring: body.recurring ?? false,
       aiGenerated: body.aiGenerated ?? false,
       energyCost: body.energyCost ?? 30,
@@ -124,15 +128,30 @@ tasksRouter.patch("/:id", async (req, res) => {
       status: z.enum(taskStatuses).optional(),
       priority: z.number().optional(),
       completionNote: z.string().optional(),
-      dueDate: z.string().datetime().optional(),
+      dueDate: z.union([z.string().datetime(), z.null()]).optional(),
+      scheduledAt: z.union([z.string().datetime(), z.null()]).optional(),
+      reminderAt: z.union([z.string().datetime(), z.null()]).optional(),
     })
     .parse(req.body);
 
-  const data: Record<string, unknown> = { ...body };
+  const data: Record<string, unknown> = {};
+  if (body.title !== undefined) data.title = body.title;
+  if (body.status !== undefined) data.status = body.status;
+  if (body.priority !== undefined) data.priority = body.priority;
+  if (body.completionNote !== undefined) data.completionNote = body.completionNote;
+  if (body.dueDate !== undefined) {
+    data.dueDate = body.dueDate === null ? null : new Date(body.dueDate);
+  }
+  if (body.scheduledAt !== undefined) {
+    data.scheduledAt = body.scheduledAt === null ? null : new Date(body.scheduledAt);
+  }
+  if (body.reminderAt !== undefined) {
+    data.reminderAt = body.reminderAt === null ? null : new Date(body.reminderAt);
+    data.reminderSentAt = null;
+  }
   if (body.status === "COMPLETED") {
     data.completedAt = new Date();
   }
-  if (body.dueDate) data.dueDate = new Date(body.dueDate);
 
   const result = await prisma.task.updateMany({
     where: { id: req.params.id, userId },

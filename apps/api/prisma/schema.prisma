@@ -173,6 +173,9 @@ model Task {
   status               TaskStatus @default(PENDING)
   priority             Int        @default(50)
   dueDate              DateTime?
+  scheduledAt          DateTime?
+  reminderAt           DateTime?
+  reminderSentAt       DateTime?
   recurring            Boolean    @default(false)
   aiGenerated          Boolean    @default(false)
   energyCost           Int        @default(30)
