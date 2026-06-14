@@ -12,6 +12,13 @@ export function speechSynthesisSupported(): boolean {
   return "speechSynthesis" in window;
 }
 
+export function appendVoiceTranscript(prev: string, chunk: string, isFinal: boolean): string {
+  if (!chunk) return prev;
+  const base = prev.replace(/\s*\[…\]$/, "").trimEnd();
+  if (!isFinal) return `${base}${base ? " " : ""}${chunk} […]`;
+  return `${base}${base ? " " : ""}${chunk}`;
+}
+
 export function useSpeechRecognition(options: {
   onTranscript: (text: string, isFinal: boolean) => void;
   lang?: string;

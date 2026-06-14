@@ -5,13 +5,16 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { SpeechInputButton } from "@/components/speech/SpeechInputButton";
 import { api } from "@/lib/api";
+import { appendVoiceTranscript } from "@/hooks/useSpeech";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 export default function NewClarityIssuePage() {
-  const { t } = useLocale();
+  const { t, speechLang } = useLocale();
   const router = useRouter();
   const [rawInput, setRawInput] = useState("");
+  const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,14 +47,26 @@ export default function NewClarityIssuePage() {
       </header>
 
       <GlassCard glow className="space-y-4">
-        <textarea
-          value={rawInput}
-          onChange={(e) => setRawInput(e.target.value)}
-          placeholder={t("clarity.brainDumpPlaceholder")}
-          rows={10}
-          disabled={loading}
-          className="w-full resize-none rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-base leading-relaxed text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-indigo-400/40"
-        />
+        <div className="flex gap-2 items-start">
+          <textarea
+            value={rawInput}
+            onChange={(e) => setRawInput(e.target.value)}
+            placeholder={listening ? t("chat.listening") : t("clarity.brainDumpPlaceholder")}
+            rows={10}
+            disabled={loading}
+            className="min-h-[240px] flex-1 resize-none rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-base leading-relaxed text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-indigo-400/40"
+          />
+          <SpeechInputButton
+            className="h-10 w-10 shrink-0 rounded-xl"
+            lang={speechLang}
+            title={t("speech.voiceInput")}
+            disabled={loading}
+            onTranscript={(chunk, isFinal) => {
+              setListening(!isFinal);
+              setRawInput((prev) => appendVoiceTranscript(prev, chunk, isFinal));
+            }}
+          />
+        </div>
         {error ? <p className="text-sm text-rose-300/90">{error}</p> : null}
         <button
           type="button"
