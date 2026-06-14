@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Moon, ChevronRight, Sparkles } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { VoiceTextarea } from "@/components/speech/VoiceTextarea";
 import { api, type DebriefQuestions, type NightDebrief } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { localizeApiPhrase } from "@/lib/i18n/localizeContent";
@@ -234,11 +235,12 @@ export default function NightDebriefPage() {
           <h2 className="text-2xl font-light text-zinc-100 leading-snug mb-8">
             {currentQuestion}
           </h2>
-          <textarea
+          <VoiceTextarea
             value={currentAnswer}
-            onChange={(e) => setCurrentAnswer(e.target.value)}
+            onChange={setCurrentAnswer}
             placeholder={t("debrief.reflectPlaceholder")}
             rows={6}
+            disabled={submitting}
             className="flex-1 w-full rounded-2xl glass p-5 text-zinc-100 placeholder:text-zinc-600 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
           />
           <button

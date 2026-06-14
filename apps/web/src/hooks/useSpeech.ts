@@ -12,15 +12,34 @@ export function speechSynthesisSupported(): boolean {
   return "speechSynthesis" in window;
 }
 
+/** Collapse stutter repeats from the speech engine (e.g. "hello hello hello"). */
+export function normalizeSpeechSession(text: string): string {
+  const words = text.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  if (words.length === 0) return "";
+  const out: string[] = [words[0]!];
+  for (let i = 1; i < words.length; i++) {
+    const w = words[i]!;
+    const prev = out[out.length - 1]!;
+    if (w.toLowerCase() !== prev.toLowerCase()) out.push(w);
+  }
+  return out.join(" ");
+}
+
+/** Merge text that existed before mic started with the current utterance session. */
+export function mergeVoiceIntoField(prefix: string, sessionText: string): string {
+  const base = prefix.trimEnd();
+  const session = normalizeSpeechSession(sessionText);
+  if (!session) return base;
+  return base ? `${base} ${session}` : session;
+}
+
+/** @deprecated Use mergeVoiceIntoField with value/onValueChange on SpeechInputButton instead. */
 export function appendVoiceTranscript(prev: string, chunk: string, isFinal: boolean): string {
-  if (!chunk) return prev;
-  const base = prev.replace(/\s*\[…\]$/, "").trimEnd();
-  if (!isFinal) return `${base}${base ? " " : ""}${chunk} […]`;
-  return `${base}${base ? " " : ""}${chunk}`;
+  return mergeVoiceIntoField(prev.replace(/\s*\[…\]$/, "").trimEnd(), chunk);
 }
 
 export function useSpeechRecognition(options: {
-  onTranscript: (text: string, isFinal: boolean) => void;
+  onTranscript: (sessionText: string, isFinal: boolean) => void;
   lang?: string;
 }) {
   const [listening, setListening] = useState(false);
@@ -28,6 +47,7 @@ export function useSpeechRecognition(options: {
   const [error, setError] = useState<string | null>(null);
   const recRef = useRef<SpeechRecognition | null>(null);
   const onTranscriptRef = useRef(options.onTranscript);
+  const lastSessionRef = useRef("");
   onTranscriptRef.current = options.onTranscript;
 
   useEffect(() => {
@@ -36,7 +56,9 @@ export function useSpeechRecognition(options: {
 
   const stop = useCallback(() => {
     recRef.current?.stop();
+    recRef.current = null;
     setListening(false);
+    lastSessionRef.current = "";
   }, []);
 
   const start = useCallback(() => {
@@ -45,6 +67,7 @@ export function useSpeechRecognition(options: {
       return;
     }
     setError(null);
+    lastSessionRef.current = "";
     const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
     const rec = new Ctor();
     rec.continuous = true;
@@ -52,16 +75,19 @@ export function useSpeechRecognition(options: {
     rec.lang = options.lang ?? "en-US";
 
     rec.onresult = (event: SpeechRecognitionEvent) => {
+      let committed = "";
       let interim = "";
-      let final = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      for (let i = 0; i < event.results.length; i++) {
         const r = event.results[i];
-        const t = r[0]?.transcript ?? "";
-        if (r.isFinal) final += t;
-        else interim += t;
+        const part = r[0]?.transcript ?? "";
+        if (r.isFinal) committed += part;
+        else interim += part;
       }
-      if (final) onTranscriptRef.current(final.trim(), true);
-      else if (interim) onTranscriptRef.current(interim.trim(), false);
+      const sessionText = normalizeSpeechSession(committed + interim);
+      const hasInterim = interim.trim().length > 0;
+      if (sessionText === lastSessionRef.current && hasInterim) return;
+      lastSessionRef.current = sessionText;
+      onTranscriptRef.current(sessionText, !hasInterim);
     };
 
     rec.onerror = (e: SpeechRecognitionErrorEvent) => {
@@ -69,9 +95,13 @@ export function useSpeechRecognition(options: {
         setError(e.error === "not-allowed" ? "Microphone permission denied." : "Voice input failed.");
       }
       setListening(false);
+      lastSessionRef.current = "";
     };
 
-    rec.onend = () => setListening(false);
+    rec.onend = () => {
+      setListening(false);
+      lastSessionRef.current = "";
+    };
 
     recRef.current = rec;
     rec.start();

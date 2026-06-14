@@ -1,11 +1,14 @@
 "use client";
 
+import { useRef } from "react";
 import { Mic, MicOff } from "lucide-react";
 import { clsx } from "clsx";
-import { useSpeechRecognition } from "@/hooks/useSpeech";
+import { mergeVoiceIntoField, useSpeechRecognition } from "@/hooks/useSpeech";
 
 type Props = {
-  onTranscript: (text: string, isFinal: boolean) => void;
+  value: string;
+  onValueChange: (value: string) => void;
+  onListeningChange?: (listening: boolean) => void;
   disabled?: boolean;
   className?: string;
   title?: string;
@@ -13,24 +16,45 @@ type Props = {
 };
 
 export function SpeechInputButton({
-  onTranscript,
+  value,
+  onValueChange,
+  onListeningChange,
   disabled,
   className,
   title = "Voice input",
   lang,
 }: Props) {
-  const { listening, supported, error, toggle } = useSpeechRecognition({
-    onTranscript,
+  const prefixRef = useRef("");
+
+  const { listening, supported, error, toggle, stop } = useSpeechRecognition({
     lang,
+    onTranscript: (sessionText, isFinal) => {
+      onValueChange(mergeVoiceIntoField(prefixRef.current, sessionText));
+      onListeningChange?.(!isFinal);
+      if (isFinal) {
+        prefixRef.current = mergeVoiceIntoField(prefixRef.current, sessionText);
+      }
+    },
   });
 
   if (!supported) return null;
+
+  const handleToggle = () => {
+    if (listening) {
+      stop();
+      onListeningChange?.(false);
+      return;
+    }
+    prefixRef.current = value.trimEnd();
+    onListeningChange?.(true);
+    toggle();
+  };
 
   return (
     <div className="relative">
       <button
         type="button"
-        onClick={toggle}
+        onClick={handleToggle}
         disabled={disabled}
         title={listening ? "Stop listening" : title}
         aria-label={listening ? "Stop listening" : title}

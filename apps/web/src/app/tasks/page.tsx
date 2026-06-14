@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { VoiceInput } from "@/components/speech/VoiceInput";
 import { TaskScheduleEditor } from "@/components/tasks/TaskScheduleEditor";
 import {
   api,
@@ -210,13 +211,13 @@ export default function TasksPage() {
           </p>
         )}
         <div className="flex gap-2 pt-1">
-          <input
-            type="text"
+          <VoiceInput
             value={progressDrafts[task.id] ?? ""}
-            onChange={(e) =>
-              setProgressDrafts((prev) => ({ ...prev, [task.id]: e.target.value }))
+            onChange={(val) =>
+              setProgressDrafts((prev) => ({ ...prev, [task.id]: val }))
             }
             placeholder={t("tasks.progressPlaceholder")}
+            disabled={busy}
             className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-sm text-zinc-200 placeholder:text-zinc-600"
             onKeyDown={(e) => {
               if (e.key === "Enter") submitFollowUp(task.id);

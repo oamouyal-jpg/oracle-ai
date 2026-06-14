@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { SpeechInputButton } from "@/components/speech/SpeechInputButton";
+import { VoiceInput } from "@/components/speech/VoiceInput";
 import { SpeakButton } from "@/components/speech/SpeakButton";
 import { api, type ChatMessage } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -16,21 +16,7 @@ export default function ChatPage() {
   const [aiSource, setAiSource] = useState<"openai" | "offline" | null>(null);
   const [offlineReason, setOfflineReason] = useState<string | null>(null);
   const [serverKeyLength, setServerKeyLength] = useState<number | null>(null);
-  const [voiceHint, setVoiceHint] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  const appendVoice = (chunk: string, isFinal: boolean) => {
-    if (!chunk) return;
-    setVoiceHint(!isFinal);
-    setInput((prev) => {
-      if (!isFinal) {
-        const base = prev.replace(/\s*\[…\]$/, "");
-        return `${base}${base && !base.endsWith(" ") ? " " : ""}${chunk} […]`;
-      }
-      const base = prev.replace(/\s*\[…\]$/, "").trimEnd();
-      return `${base}${base ? " " : ""}${chunk}`;
-    });
-  };
 
   useEffect(() => {
     api.chatHistory().then(setMessages).catch(() => {});
@@ -166,16 +152,14 @@ export default function ChatPage() {
         }}
         className="flex gap-2 items-center"
       >
-        <SpeechInputButton
-          onTranscript={appendVoice}
+        <VoiceInput
+          value={input}
+          onChange={setInput}
           disabled={loading}
           lang={speechLang}
-        />
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={voiceHint ? t("chat.listening") : t("chat.placeholder")}
-          className="flex-1 rounded-2xl glass px-5 py-3 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+          placeholder={t("chat.placeholder")}
+          className="rounded-2xl glass px-5 py-3 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+          wrapperClassName="flex-1"
         />
         <button
           type="submit"

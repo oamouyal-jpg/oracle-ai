@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Task } from "@/lib/api";
+import { VoiceInput } from "@/components/speech/VoiceInput";
 import {
   defaultReminderIso,
   toDateInputValue,
@@ -61,9 +62,9 @@ export function TaskScheduleEditor({
   return (
     <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-3">
       {createMode ? (
-        <input
+        <VoiceInput
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={setTitle}
           placeholder={t("tasks.newTaskPlaceholder")}
           className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-zinc-100"
         />

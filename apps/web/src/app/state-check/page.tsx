@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { VoiceTextarea } from "@/components/speech/VoiceTextarea";
 import { CurrentStateCard } from "@/components/state/CurrentStateCard";
 import { PatternMatchCard } from "@/components/state/PatternMatchCard";
 import { NextSafeActionCard } from "@/components/state/NextSafeActionCard";
@@ -52,11 +53,12 @@ export default function StateCheckPage() {
 
       <GlassCard glow className="space-y-4">
         <p className="text-xs text-zinc-500">{t("stateCheck.promptHint")}</p>
-        <textarea
+        <VoiceTextarea
           value={rawInput}
-          onChange={(e) => setRawInput(e.target.value)}
+          onChange={setRawInput}
           placeholder={t("stateCheck.placeholder")}
           rows={5}
+          disabled={busy}
           className="w-full resize-none rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-500/40"
         />
         <button

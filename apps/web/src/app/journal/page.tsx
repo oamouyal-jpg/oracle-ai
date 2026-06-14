@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { SpeechInputButton } from "@/components/speech/SpeechInputButton";
+import { VoiceTextarea } from "@/components/speech/VoiceTextarea";
 import { CurrentStateCard } from "@/components/state/CurrentStateCard";
 import { NextSafeActionCard } from "@/components/state/NextSafeActionCard";
 import { api, type JournalEntryWithState, type StateDetectionResult } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 export default function JournalPage() {
-  const { t, speechLang } = useLocale();
+  const { t } = useLocale();
   const [entries, setEntries] = useState<JournalEntryWithState[]>([]);
   const [content, setContent] = useState("");
   const [mood, setMood] = useState(5);
@@ -48,27 +48,14 @@ export default function JournalPage() {
           onChange={(e) => setMood(Number(e.target.value))}
           className="w-full mt-2 accent-indigo-500"
         />
-        <div className="flex gap-2 items-start mt-4">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={5}
-            placeholder={t("journal.placeholder")}
-            className="flex-1 rounded-xl bg-white/5 border border-white/10 p-4 text-zinc-100 placeholder:text-zinc-600 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
-          />
-          <SpeechInputButton
-            className="h-10 w-10 shrink-0 rounded-xl"
-            lang={speechLang}
-            onTranscript={(chunk, isFinal) => {
-              if (!chunk) return;
-              setContent((prev) => {
-                const base = prev.replace(/\s*\[…\]$/, "").trimEnd();
-                if (!isFinal) return `${base}${base ? " " : ""}${chunk} […]`;
-                return `${base}${base ? " " : ""}${chunk}`;
-              });
-            }}
-          />
-        </div>
+        <VoiceTextarea
+          value={content}
+          onChange={setContent}
+          rows={5}
+          placeholder={t("journal.placeholder")}
+          wrapperClassName="mt-4"
+          className="rounded-xl bg-white/5 border border-white/10 p-4 text-zinc-100 placeholder:text-zinc-600 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+        />
         <button
           type="button"
           onClick={submit}

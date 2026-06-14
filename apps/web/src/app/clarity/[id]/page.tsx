@@ -17,10 +17,9 @@ import { PatternMatchCard } from "@/components/state/PatternMatchCard";
 import { NextSafeActionCard } from "@/components/state/NextSafeActionCard";
 import { KnownFactsVsAssumptions } from "@/components/state/KnownFactsVsAssumptions";
 import { OracleCanDoThisCard } from "@/components/agent/OracleCanDoThisCard";
-import { SpeechInputButton } from "@/components/speech/SpeechInputButton";
+import { VoiceTextarea } from "@/components/speech/VoiceTextarea";
 import { SpeakButton } from "@/components/speech/SpeakButton";
 import { api, type ClarityIssueDetail, type ClarityStep, type StateDetectionResult, type AgentAction } from "@/lib/api";
-import { appendVoiceTranscript } from "@/hooks/useSpeech";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 export default function ClarityIssuePage() {
@@ -38,7 +37,6 @@ export default function ClarityIssuePage() {
   const [lastStateCheck, setLastStateCheck] = useState<StateDetectionResult | null>(null);
   const [agentAction, setAgentAction] = useState<AgentAction | null>(null);
   const [busy, setBusy] = useState(false);
-  const [voiceField, setVoiceField] = useState<"clarify" | "checkin" | null>(null);
 
   const load = useCallback(() => {
     return api
@@ -290,25 +288,14 @@ export default function ClarityIssuePage() {
           </p>
           <p className="text-base leading-relaxed text-zinc-100">{currentQuestion}</p>
           <p className="text-xs text-zinc-500">{t("clarity.clarifyPrompt")}</p>
-          <div className="flex gap-2 items-start">
-            <textarea
-              value={clarifyAnswer}
-              onChange={(e) => setClarifyAnswer(e.target.value)}
-              placeholder={voiceField === "clarify" ? t("chat.listening") : t("clarity.clarifyPlaceholder")}
-              rows={4}
-              className="flex-1 resize-none rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-zinc-100 outline-none"
-            />
-            <SpeechInputButton
-              className="h-10 w-10 shrink-0 rounded-xl"
-              lang={speechLang}
-              title={t("speech.voiceInput")}
-              disabled={busy}
-              onTranscript={(chunk, isFinal) => {
-                setVoiceField(isFinal ? null : "clarify");
-                setClarifyAnswer((prev) => appendVoiceTranscript(prev, chunk, isFinal));
-              }}
-            />
-          </div>
+          <VoiceTextarea
+            value={clarifyAnswer}
+            onChange={setClarifyAnswer}
+            placeholder={t("clarity.clarifyPlaceholder")}
+            rows={4}
+            disabled={busy}
+            className="resize-none rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-zinc-100 outline-none"
+          />
           <button
             type="button"
             disabled={busy || !clarifyAnswer.trim()}
@@ -554,25 +541,14 @@ export default function ClarityIssuePage() {
           <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
             {t("clarity.checkIn")}
           </p>
-          <div className="flex gap-2 items-start">
-            <textarea
-              value={checkInText}
-              onChange={(e) => setCheckInText(e.target.value)}
-              placeholder={voiceField === "checkin" ? t("chat.listening") : t("clarity.checkInPlaceholder")}
-              rows={3}
-              className="flex-1 resize-none rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-zinc-100 outline-none"
-            />
-            <SpeechInputButton
-              className="h-10 w-10 shrink-0 rounded-xl"
-              lang={speechLang}
-              title={t("speech.voiceInput")}
-              disabled={busy}
-              onTranscript={(chunk, isFinal) => {
-                setVoiceField(isFinal ? null : "checkin");
-                setCheckInText((prev) => appendVoiceTranscript(prev, chunk, isFinal));
-              }}
-            />
-          </div>
+          <VoiceTextarea
+            value={checkInText}
+            onChange={setCheckInText}
+            placeholder={t("clarity.checkInPlaceholder")}
+            rows={3}
+            disabled={busy}
+            className="resize-none rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-zinc-100 outline-none"
+          />
           <button
             type="button"
             disabled={busy || !checkInText.trim()}

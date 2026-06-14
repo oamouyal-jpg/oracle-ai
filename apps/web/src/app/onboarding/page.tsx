@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, Sparkles } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { VoiceTextarea } from "@/components/speech/VoiceTextarea";
 import { api, type OnboardingQuestion } from "@/lib/api";
 import { useAuth } from "@/lib/AuthProvider";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -106,11 +107,12 @@ export default function OnboardingPage() {
               exit={{ opacity: 0, y: -12 }}
             >
               <h2 className="text-xl font-light text-zinc-100 leading-snug mb-6">{q.question}</h2>
-              <textarea
+              <VoiceTextarea
                 value={current}
-                onChange={(e) => setCurrent(e.target.value)}
+                onChange={setCurrent}
                 placeholder={q.placeholder}
                 rows={5}
+                disabled={submitting}
                 className="w-full rounded-2xl glass p-5 text-zinc-100 placeholder:text-zinc-600 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
               />
               <button

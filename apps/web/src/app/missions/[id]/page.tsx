@@ -12,6 +12,8 @@ import {
   Pencil,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { VoiceInput } from "@/components/speech/VoiceInput";
+import { VoiceTextarea } from "@/components/speech/VoiceTextarea";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import {
   api,
@@ -182,9 +184,9 @@ export default function MissionDetailPage() {
           )}
           {editingTitle ? (
             <div className="space-y-2 max-w-xl">
-              <input
+              <VoiceInput
                 value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
+                onChange={setTitleDraft}
                 placeholder={t("missions.missionTitle")}
                 className="w-full rounded-xl glass px-4 py-2 text-2xl font-light text-zinc-50 focus:outline-none"
                 onKeyDown={(e) => {
@@ -383,10 +385,11 @@ export default function MissionDetailPage() {
         <div className="space-y-4">
           <GlassCard>
             <h3 className="text-sm text-zinc-300 mb-3">{t("missionDetail.updateTitle")}</h3>
-            <textarea
+            <VoiceTextarea
               value={updateText}
-              onChange={(e) => setUpdateText(e.target.value)}
+              onChange={setUpdateText}
               rows={4}
+              disabled={loading}
               placeholder={t("missionDetail.updatePlaceholder")}
               className="w-full rounded-xl glass p-4 text-zinc-100 placeholder:text-zinc-600 resize-none focus:outline-none"
             />
@@ -527,12 +530,11 @@ export default function MissionDetailPage() {
               {questions.map((q) => (
                 <div key={q}>
                   <p className="text-sm text-zinc-300 mb-1">{q}</p>
-                  <textarea
+                  <VoiceTextarea
                     value={tradingResponses[q] ?? ""}
-                    onChange={(e) =>
-                      setTradingResponses({ ...tradingResponses, [q]: e.target.value })
-                    }
+                    onChange={(val) => setTradingResponses({ ...tradingResponses, [q]: val })}
                     rows={2}
+                    disabled={loading}
                     className="w-full rounded-xl glass p-3 text-sm text-zinc-100 resize-none focus:outline-none"
                   />
                 </div>

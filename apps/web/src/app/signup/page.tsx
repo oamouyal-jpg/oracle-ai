@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { VoiceInput } from "@/components/speech/VoiceInput";
 import { useAuth } from "@/lib/AuthProvider";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
@@ -50,13 +51,14 @@ export default function SignupPage() {
             <label className="text-xs text-zinc-500 uppercase tracking-widest">
               {t("auth.name")}
             </label>
-            <input
-              type="text"
+            <VoiceInput
               required
               autoComplete="name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full rounded-xl glass px-4 py-3 text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+              onChange={setName}
+              disabled={loading}
+              wrapperClassName="mt-1"
+              className="w-full rounded-xl glass px-4 py-3 text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
             />
           </div>
           <div>

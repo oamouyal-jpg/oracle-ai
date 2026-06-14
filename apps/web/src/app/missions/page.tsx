@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, TrendingUp, Shield, Trash2, Pencil } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { VoiceInput } from "@/components/speech/VoiceInput";
+import { VoiceTextarea } from "@/components/speech/VoiceTextarea";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { api, checkApiHealth, type Mission, type CreateMissionInput } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -127,23 +129,23 @@ export default function MissionTrackerPage() {
             </p>
           )}
           <div className="space-y-3">
-            <input
+            <VoiceInput
               placeholder={t("missions.missionTitle")}
               value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              onChange={(title) => setForm({ ...form, title })}
               className="w-full rounded-xl glass px-4 py-3 text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
             />
-            <textarea
+            <VoiceTextarea
               placeholder={t("missions.whyItMatters")}
-              value={form.whyItMatters}
-              onChange={(e) => setForm({ ...form, whyItMatters: e.target.value })}
+              value={form.whyItMatters ?? ""}
+              onChange={(whyItMatters) => setForm({ ...form, whyItMatters })}
               rows={2}
               className="w-full rounded-xl glass px-4 py-3 text-zinc-100 placeholder:text-zinc-600 focus:outline-none resize-none"
             />
-            <textarea
+            <VoiceTextarea
               placeholder={t("missions.desiredOutcome")}
-              value={form.desiredOutcome}
-              onChange={(e) => setForm({ ...form, desiredOutcome: e.target.value })}
+              value={form.desiredOutcome ?? ""}
+              onChange={(desiredOutcome) => setForm({ ...form, desiredOutcome })}
               rows={2}
               className="w-full rounded-xl glass px-4 py-3 text-zinc-100 placeholder:text-zinc-600 focus:outline-none resize-none"
             />
@@ -194,9 +196,9 @@ export default function MissionTrackerPage() {
                   </div>
                   {editingId === m.id ? (
                     <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-                      <input
+                      <VoiceInput
                         value={titleDraft}
-                        onChange={(e) => setTitleDraft(e.target.value)}
+                        onChange={setTitleDraft}
                         placeholder={t("missions.missionTitle")}
                         className="w-full rounded-xl glass px-3 py-2 text-lg text-zinc-100 focus:outline-none"
                         onKeyDown={(e) => {

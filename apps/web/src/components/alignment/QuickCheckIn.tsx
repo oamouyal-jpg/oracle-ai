@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Send } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { SpeechInputButton } from "@/components/speech/SpeechInputButton";
+import { VoiceTextarea } from "@/components/speech/VoiceTextarea";
 import { SpeakButton } from "@/components/speech/SpeakButton";
 import { api } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -35,28 +35,14 @@ export function QuickCheckIn({ onSubmitted }: { onSubmitted?: () => void }) {
         {t("reflection.title")}
       </p>
       <p className="text-sm text-zinc-500 mb-4">{t("reflection.subtitle")}</p>
-      <div className="flex gap-2 items-start">
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={t("reflection.placeholder")}
-          rows={3}
-          className="flex-1 rounded-xl glass p-4 text-sm text-zinc-100 placeholder:text-zinc-600 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
-        />
-        <SpeechInputButton
-          className="h-10 w-10 shrink-0 rounded-xl"
-          lang={speechLang}
-          onTranscript={(chunk, isFinal) => {
-            if (!chunk) return;
-            setText((prev) => {
-              const base = prev.replace(/\s*\[…\]$/, "").trimEnd();
-              if (!isFinal) return `${base}${base ? " " : ""}${chunk} […]`;
-              return `${base}${base ? " " : ""}${chunk}`;
-            });
-          }}
-          disabled={loading}
-        />
-      </div>
+      <VoiceTextarea
+        value={text}
+        onChange={setText}
+        placeholder={t("reflection.placeholder")}
+        rows={3}
+        disabled={loading}
+        className="rounded-xl glass p-4 text-sm text-zinc-100 placeholder:text-zinc-600 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+      />
       <div className="grid grid-cols-2 gap-4 mt-3">
         <label className="text-xs text-zinc-500">
           {t("reflection.moodLabel", { n: mood })}

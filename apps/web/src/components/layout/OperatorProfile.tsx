@@ -7,6 +7,7 @@ import { api, type UserProfile } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useAuth } from "@/lib/AuthProvider";
 import { MorningNotificationSettings } from "@/components/notifications/MorningNotificationSettings";
+import { VoiceInput } from "@/components/speech/VoiceInput";
 
 type OperatorProfileProps = {
   className?: string;
@@ -76,13 +77,13 @@ export function OperatorProfile({ className, compact }: OperatorProfileProps) {
           <label className="sr-only" htmlFor="operator-name">
             {t("profile.nameLabel")}
           </label>
-          <input
+          <VoiceInput
             id="operator-name"
-            type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={setName}
             placeholder={t("profile.namePlaceholder")}
             maxLength={80}
+            disabled={saving}
             className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-indigo-500/40 focus:outline-none"
           />
           <button
