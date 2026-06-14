@@ -14,6 +14,7 @@ import {
   runIntakeAnalysis,
   skipCurrentStep,
   submitClarifyingAnswer,
+  retryClarityPlan,
 } from "../services/clarityEngine.js";
 import { runStateDetection } from "../services/stateDetectionEngine.js";
 
@@ -109,6 +110,15 @@ clarityRouter.post("/:id/clarify", asyncHandler(async (req, res) => {
   const result = await submitClarifyingAnswer(issueId, userId, answer, locale);
   const detail = formatIssueDetail(await loadIssueDetail(issueId, userId));
   res.json({ ...detail, ...result });
+}));
+
+clarityRouter.post("/:id/retry-plan", asyncHandler(async (req, res) => {
+  const userId = await resolveUserId(req);
+  const locale = requestLocale(req);
+  const issueId = idParam(req.params.id);
+  const { source } = await retryClarityPlan(issueId, userId, locale);
+  const detail = formatIssueDetail(await loadIssueDetail(issueId, userId));
+  res.json({ ...detail, aiSource: source });
 }));
 
 clarityRouter.post("/:id/steps/:stepId/complete", asyncHandler(async (req, res) => {

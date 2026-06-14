@@ -186,6 +186,7 @@ const en = {
     whyItMatters: "Why it matters",
     desiredOutcome: "Desired outcome",
     deleteMission: "Delete mission",
+    editTitle: "Edit title",
   },
   clarity: {
     title: "Clarity",
@@ -224,6 +225,10 @@ const en = {
     statusActive: "In progress",
     statusCompleted: "Complete",
     statusPaused: "Paused",
+    planStuckTitle: "Plan didn't finish saving",
+    planStuckBody:
+      "Your answers are still here — the last step failed before Oracle could build your North Star and steps. Tap below to rebuild.",
+    planRetry: "Rebuild my plan",
   },
   stateCheck: {
     title: "State Check",
@@ -418,6 +423,7 @@ const en = {
     oracleReply: "Oracle",
     recentFocus: "Recent focus tasks",
     statusUpdated: "Status updated from your report",
+    loadError: "Couldn't load tasks — try signing in again or refresh the page.",
   },
   domains: {
     title: "Domains",
@@ -733,6 +739,7 @@ const he: Messages = {
     whyItMatters: "למה זה חשוב",
     desiredOutcome: "תוצאה רצויה",
     deleteMission: "מחק משימה",
+    editTitle: "ערוך כותרת",
   },
   clarity: {
     title: "בהירות",
@@ -770,6 +777,10 @@ const he: Messages = {
     statusActive: "בתהליך",
     statusCompleted: "הושלם",
     statusPaused: "מושהה",
+    planStuckTitle: "התוכנית לא נשמרה",
+    planStuckBody:
+      "התשובות שלך עדיין כאן — השלב האחרון נכשל לפני ש-Oracle בנה את כוכב הצפון והצעדים. לחץ לבנייה מחדש.",
+    planRetry: "בנה מחדש את התוכנית",
   },
   stateCheck: {
     title: "בדיקת מצב",
@@ -963,6 +974,7 @@ const he: Messages = {
     oracleReply: "Oracle",
     recentFocus: "משימות מיקוד אחרונות",
     statusUpdated: "הסטטוס עודכן לפי הדיווח שלך",
+    loadError: "לא ניתן לטעון משימות — נסה להתחבר מחדש או לרענן את הדף.",
   },
   domains: {
     title: "תחומים",
@@ -1278,6 +1290,7 @@ const fr: Messages = {
     whyItMatters: "Pourquoi c'est important",
     desiredOutcome: "Résultat souhaité",
     deleteMission: "Supprimer la mission",
+    editTitle: "Modifier le titre",
   },
   clarity: {
     title: "Clarté",
@@ -1316,6 +1329,10 @@ const fr: Messages = {
     statusActive: "En cours",
     statusCompleted: "Terminé",
     statusPaused: "En pause",
+    planStuckTitle: "Le plan n'a pas été enregistré",
+    planStuckBody:
+      "Vos réponses sont toujours là — la dernière étape a échoué avant qu'Oracle construise votre étoile polaire et vos pas. Appuyez pour reconstruire.",
+    planRetry: "Reconstruire mon plan",
   },
   stateCheck: {
     title: "État actuel",
@@ -1511,6 +1528,7 @@ const fr: Messages = {
     oracleReply: "Oracle",
     recentFocus: "Tâches focus récentes",
     statusUpdated: "Statut mis à jour selon votre rapport",
+    loadError: "Impossible de charger les tâches — reconnectez-vous ou actualisez la page.",
   },
   domains: {
     title: "Domaines",

@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Shield,
   ChevronRight,
+  Pencil,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { ProgressRing } from "@/components/ui/ProgressRing";
@@ -45,6 +46,9 @@ export default function MissionDetailPage() {
     instrument: "MNQ",
   });
   const [weeklyReport, setWeeklyReport] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [titleError, setTitleError] = useState<string | null>(null);
 
   const load = () => api.missionTracker(id).then(setMission).catch(console.error);
 
@@ -60,11 +64,40 @@ export default function MissionDetailPage() {
     if (mission?.missionType === "TRADING") setTab("trading");
   }, [mission?.missionType]);
 
+  useEffect(() => {
+    if (mission && !editingTitle) setTitleDraft(mission.title);
+  }, [mission?.title, editingTitle]);
+
   const runAiReview = async () => {
     setLoading(true);
     try {
       const { mission: m } = await api.missionAiReview(id);
       setMission(m);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveTitle = async () => {
+    const trimmed = titleDraft.trim();
+    if (!mission) return;
+    if (!trimmed) {
+      setTitleError(t("common.couldNotCreate"));
+      return;
+    }
+    if (trimmed === mission.title) {
+      setEditingTitle(false);
+      setTitleError(null);
+      return;
+    }
+    setLoading(true);
+    setTitleError(null);
+    try {
+      await api.updateMission(id, { title: trimmed });
+      setEditingTitle(false);
+      await load();
+    } catch (e) {
+      setTitleError(e instanceof Error ? e.message : t("common.couldNotCreate"));
     } finally {
       setLoading(false);
     }
@@ -147,9 +180,68 @@ export default function MissionDetailPage() {
               <Shield className="h-3 w-3" /> {t("missionDetail.tradingBadge")}
             </span>
           )}
-          <h1 className="text-3xl font-light text-zinc-50 glow-text">
-            {localizeMissionTitle(mission.title, locale)}
-          </h1>
+          {editingTitle ? (
+            <div className="space-y-2 max-w-xl">
+              <input
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                placeholder={t("missions.missionTitle")}
+                className="w-full rounded-xl glass px-4 py-2 text-2xl font-light text-zinc-50 focus:outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void saveTitle();
+                  if (e.key === "Escape") {
+                    setEditingTitle(false);
+                    setTitleDraft(mission.title);
+                    setTitleError(null);
+                  }
+                }}
+                autoFocus
+              />
+              {titleError ? (
+                <p className="text-sm text-rose-300/90">{titleError}</p>
+              ) : null}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void saveTitle()}
+                  disabled={loading || !titleDraft.trim()}
+                  className="px-4 py-2 rounded-xl bg-indigo-500/30 text-indigo-100 text-sm disabled:opacity-40"
+                >
+                  {t("common.save")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingTitle(false);
+                    setTitleDraft(mission.title);
+                    setTitleError(null);
+                  }}
+                  disabled={loading}
+                  className="px-4 py-2 rounded-xl border border-white/10 text-zinc-400 text-sm"
+                >
+                  {t("common.cancel")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2">
+              <h1 className="text-3xl font-light text-zinc-50 glow-text">
+                {localizeMissionTitle(mission.title, locale)}
+              </h1>
+              <button
+                type="button"
+                title={t("missions.editTitle")}
+                onClick={() => {
+                  setTitleDraft(mission.title);
+                  setEditingTitle(true);
+                  setTitleError(null);
+                }}
+                className="mt-1.5 p-1.5 rounded-lg text-zinc-600 hover:text-indigo-300 hover:bg-indigo-500/10 border border-transparent hover:border-indigo-500/30 transition"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            </div>
+          )}
           <p className="text-zinc-500 mt-2">{localizeMissionStatus(mission.status, locale)}</p>
         </div>
         <ProgressRing

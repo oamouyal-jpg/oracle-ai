@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, TrendingUp, Shield, Trash2 } from "lucide-react";
+import { Plus, TrendingUp, Shield, Trash2, Pencil } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { api, checkApiHealth, type Mission, type CreateMissionInput } from "@/lib/api";
@@ -25,6 +25,8 @@ export default function MissionTrackerPage() {
     desiredOutcome: "",
     missionType: "GENERAL",
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [titleDraft, setTitleDraft] = useState("");
 
   const load = () =>
     api
@@ -44,9 +46,27 @@ export default function MissionTrackerPage() {
     setCreateError(null);
     try {
       await api.deleteMission(id);
+      if (editingId === id) setEditingId(null);
       load();
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : t("common.couldNotDelete"));
+    }
+  };
+
+  const saveTitle = async (id: string, originalTitle: string) => {
+    const trimmed = titleDraft.trim();
+    if (!trimmed) return;
+    if (trimmed === originalTitle) {
+      setEditingId(null);
+      return;
+    }
+    setCreateError(null);
+    try {
+      await api.updateMission(id, { title: trimmed });
+      setEditingId(null);
+      load();
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : t("common.couldNotCreate"));
     }
   };
 
@@ -152,10 +172,15 @@ export default function MissionTrackerPage() {
       )}
 
       <div className="grid gap-4">
+        {createError && !showCreate && (
+          <p className="text-sm text-amber-300 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+            {createError}
+          </p>
+        )}
         {missions.map((m, i) => (
           <GlassCard key={m.id} delay={i * 0.04} glow={m.missionType === "TRADING"}>
             <div className="flex flex-wrap gap-6 justify-between items-start">
-              <Link href={`/missions/${m.id}`} className="flex-1 min-w-[200px]">
+              <div className="flex-1 min-w-[200px]">
                 <div>
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                     {m.missionType === "TRADING" && (
@@ -167,21 +192,60 @@ export default function MissionTrackerPage() {
                       {t("common.status")}: {localizeMissionStatus(m.status, locale)}
                     </span>
                   </div>
-                  <h2 className="text-xl font-medium text-zinc-100">
-                    {localizeMissionTitle(m.title, locale)}
-                  </h2>
+                  {editingId === m.id ? (
+                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        value={titleDraft}
+                        onChange={(e) => setTitleDraft(e.target.value)}
+                        placeholder={t("missions.missionTitle")}
+                        className="w-full rounded-xl glass px-3 py-2 text-lg text-zinc-100 focus:outline-none"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void saveTitle(m.id, m.title);
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void saveTitle(m.id, m.title)}
+                          disabled={!titleDraft.trim()}
+                          className="px-3 py-1.5 rounded-lg bg-indigo-500/30 text-indigo-100 text-xs disabled:opacity-40"
+                        >
+                          {t("common.save")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingId(null)}
+                          className="px-3 py-1.5 rounded-lg border border-white/10 text-zinc-400 text-xs"
+                        >
+                          {t("common.cancel")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Link href={`/missions/${m.id}`}>
+                      <h2 className="text-xl font-medium text-zinc-100 hover:text-indigo-100">
+                        {localizeMissionTitle(m.title, locale)}
+                      </h2>
+                    </Link>
+                  )}
                   {(m.whyItMatters || m.purpose) && (
-                    <p className="text-sm text-zinc-400 mt-2 line-clamp-2">
-                      {m.whyItMatters ?? m.purpose}
-                    </p>
+                    <Link href={`/missions/${m.id}`}>
+                      <p className="text-sm text-zinc-400 mt-2 line-clamp-2">
+                        {m.whyItMatters ?? m.purpose}
+                      </p>
+                    </Link>
                   )}
                   {m.nextActions && m.nextActions.length > 0 && (
-                    <p className="text-xs text-indigo-300/80 mt-2">
-                      {t("common.next")}: {m.nextActions[0]}
-                    </p>
+                    <Link href={`/missions/${m.id}`}>
+                      <p className="text-xs text-indigo-300/80 mt-2">
+                        {t("common.next")}: {m.nextActions[0]}
+                      </p>
+                    </Link>
                   )}
                 </div>
-              </Link>
+              </div>
               <div className="flex items-center gap-3">
                 <Link href={`/missions/${m.id}`} className="flex items-center gap-4">
                   <ProgressRing
@@ -191,6 +255,20 @@ export default function MissionTrackerPage() {
                   />
                   <TrendingUp className="h-5 w-5 text-zinc-600" />
                 </Link>
+                {editingId !== m.id && (
+                  <button
+                    type="button"
+                    title={t("missions.editTitle")}
+                    onClick={() => {
+                      setEditingId(m.id);
+                      setTitleDraft(m.title);
+                      setCreateError(null);
+                    }}
+                    className="p-2 rounded-lg text-zinc-600 hover:text-indigo-300 hover:bg-indigo-500/10 border border-transparent hover:border-indigo-500/30 transition"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                )}
                 <button
                   type="button"
                   title={t("missions.deleteMission")}

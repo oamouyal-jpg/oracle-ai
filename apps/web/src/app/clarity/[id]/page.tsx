@@ -60,6 +60,12 @@ export default function ClarityIssuePage() {
       ? issue.pendingQuestions[0]
       : null;
 
+  const planStuck =
+    issue?.status === "CLARIFYING" &&
+    issue.pendingQuestions.length === 0 &&
+    issue.steps.length === 0 &&
+    !issue.outcome;
+
   const submitClarify = async () => {
     if (!clarifyAnswer.trim()) return;
     setBusy(true);
@@ -120,6 +126,19 @@ export default function ClarityIssuePage() {
     try {
       const result = await api.promoteClarityIssue(id);
       setIssue(result);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("common.couldNotCreate"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const retryPlan = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await api.retryClarityPlan(id);
+      setIssue(updated);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("common.couldNotCreate"));
     } finally {
@@ -244,6 +263,21 @@ export default function ClarityIssuePage() {
             className="w-full rounded-xl bg-indigo-500/35 py-2.5 text-sm text-indigo-50 disabled:opacity-40"
           >
             {t("clarity.submitAnswer")}
+          </button>
+        </GlassCard>
+      ) : planStuck ? (
+        <GlassCard glow className="space-y-4 border-amber-500/25">
+          <p className="text-xs uppercase tracking-wider text-amber-300/80">
+            {t("clarity.planStuckTitle")}
+          </p>
+          <p className="text-sm leading-relaxed text-zinc-300">{t("clarity.planStuckBody")}</p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void retryPlan()}
+            className="w-full rounded-xl bg-amber-500/25 py-2.5 text-sm text-amber-50 disabled:opacity-40"
+          >
+            {busy ? "…" : t("clarity.planRetry")}
           </button>
         </GlassCard>
       ) : null}

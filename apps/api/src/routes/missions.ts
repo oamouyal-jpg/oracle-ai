@@ -154,7 +154,7 @@ missionsRouter.patch("/:id", async (req, res) => {
   const userId = await resolveUserId(req);
   const body = z
     .object({
-      title: z.string().optional(),
+      title: z.string().min(1).optional(),
       purpose: z.string().optional(),
       whyItMatters: z.string().optional(),
       desiredOutcome: z.string().optional(),

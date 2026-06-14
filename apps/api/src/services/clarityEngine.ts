@@ -307,12 +307,51 @@ export async function submitClarifyingAnswer(
     where: { id: issueId },
     data: {
       clarifyingAnswers: newAnswers,
-      pendingQuestions: [],
     },
   });
 
+  try {
+    const src = await synthesizeAndActivatePlan(issueId, userId, locale);
+    await prisma.clarityIssue.update({
+      where: { id: issueId },
+      data: { pendingQuestions: [] },
+    });
+    return { done: true, source: src };
+  } catch (err) {
+    await prisma.clarityIssue.update({
+      where: { id: issueId },
+      data: {
+        pendingQuestions: [
+          "Plan generation paused — type “retry” or any short note to rebuild your North Star and steps.",
+        ],
+      },
+    });
+    throw err;
+  }
+}
+
+/** Rebuild plan for issues stuck after a failed clarify (no steps, plan never saved). */
+export async function retryClarityPlan(
+  issueId: string,
+  userId: string,
+  locale: AppLocale
+): Promise<{ source: "openai" | "offline" }> {
+  const issue = await prisma.clarityIssue.findFirst({
+    where: { id: issueId, userId },
+    include: { steps: { take: 1 } },
+  });
+  if (!issue) throw new Error("Issue not found");
+  if (issue.steps.length > 0) throw new Error("Plan already exists");
+  if (issue.status !== "CLARIFYING" && issue.status !== "INTAKE") {
+    throw new Error("Issue cannot retry plan in current status");
+  }
+
   const src = await synthesizeAndActivatePlan(issueId, userId, locale);
-  return { done: true, source: src };
+  await prisma.clarityIssue.update({
+    where: { id: issueId },
+    data: { pendingQuestions: [] },
+  });
+  return { source: src };
 }
 
 function mapConstraintType(raw: string): ClarityConstraintType {

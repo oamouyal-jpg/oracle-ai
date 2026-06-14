@@ -23,6 +23,7 @@ export default function TasksPage() {
   const [otherTasks, setOtherTasks] = useState<Task[]>([]);
   const [recentClosed, setRecentClosed] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [replenishMsg, setReplenishMsg] = useState<string | null>(null);
   const [progressDrafts, setProgressDrafts] = useState<Record<string, string>>({});
   const [submittingFollowUp, setSubmittingFollowUp] = useState<string | null>(null);
@@ -47,6 +48,7 @@ export default function TasksPage() {
 
   const load = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [result, all] = await Promise.all([api.focusTasks(), api.tasks()]);
       setMenu(result);
@@ -63,6 +65,7 @@ export default function TasksPage() {
       );
     } catch (e) {
       console.error(e);
+      setLoadError(e instanceof Error ? e.message : t("tasks.loadError"));
     } finally {
       setLoading(false);
     }
@@ -297,6 +300,12 @@ export default function TasksPage() {
       {replenishMsg && (
         <GlassCard glow>
           <p className="text-sm text-emerald-300">{replenishMsg}</p>
+        </GlassCard>
+      )}
+
+      {loadError && (
+        <GlassCard className="border-rose-500/30">
+          <p className="text-sm text-rose-200/90">{loadError}</p>
         </GlassCard>
       )}
 

@@ -214,6 +214,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ answer }),
     }),
+  retryClarityPlan: (id: string) =>
+    fetchApi<ClarityIssueDetail & { aiSource?: string }>(`/clarity/${id}/retry-plan`, {
+      method: "POST",
+    }),
   completeClarityStep: (issueId: string, stepId: string) =>
     fetchApi<ClarityIssueDetail>(`/clarity/${issueId}/steps/${stepId}/complete`, {
       method: "POST",
