@@ -33,7 +33,7 @@ git push -u origin main
 |---------|--------|
 | Root Directory | `apps/api` |
 | Build Command | `npm install && npx prisma generate && npm run build` |
-| Start Command | `npx prisma db push && npm run db:seed && npm run start` |
+| Start Command | `npm run db:deploy && npm run db:seed && npm run start` |
 | Health Check | `/health` |
 
 **Database:** Add **PostgreSQL** on Render. Copy **Internal Database URL** into `DATABASE_URL`.

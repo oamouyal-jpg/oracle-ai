@@ -113,7 +113,7 @@ Guided reflection across execution, emotions, relationships, health, and self-aw
 3. Use `render.yaml` in the repo root, or configure manually:
    - **Root directory:** `apps/api`
    - **Build:** `npm install && npx prisma generate && npm run build`
-   - **Start:** `npx prisma db push && npm run db:seed && npm run start` (first deploy seeds DB; optional on later deploys)
+   - **Start:** `npm run db:deploy && npm run db:seed && npm run start` (first deploy seeds DB; optional on later deploys)
    - **Health check path:** `/health`
 4. Add a **PostgreSQL** database on Render and set **`DATABASE_URL`** (not SQLite in production).
 5. Environment variables on the **API** service:
