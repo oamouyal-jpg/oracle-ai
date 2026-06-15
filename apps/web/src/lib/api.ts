@@ -144,6 +144,11 @@ export const api = {
     fetchApi<DailyOracleLine>("/daily-oracle/regenerate", { method: "POST" }),
   debriefQuestions: () => fetchApi<DebriefQuestions>("/debrief/questions"),
   debriefToday: () => fetchApi<NightDebrief | null>("/debrief/today"),
+  saveDebriefAnswer: (payload: { key: string; answer: string; finalize?: boolean }) =>
+    fetchApi<NightDebrief>("/debrief/answer", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   submitDebrief: (responses: Record<string, string>) =>
     fetchApi<NightDebrief>("/debrief/submit", {
       method: "POST",
@@ -597,6 +602,7 @@ export interface DailyOracleLine {
 }
 
 export interface NightDebrief {
+  responses?: Record<string, string>;
   focusScore: number | null;
   emotionalScore: number | null;
   executionScore: number | null;

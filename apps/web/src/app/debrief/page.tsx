@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Moon, ChevronRight, Sparkles } from "lucide-react";
+import { Moon, ChevronRight, Sparkles, Check } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { VoiceTextarea } from "@/components/speech/VoiceTextarea";
 import { api, type DebriefQuestions, type NightDebrief } from "@/lib/api";
@@ -19,16 +19,35 @@ const SECTION_KEYS: (keyof DebriefQuestions)[] = [
   "awareness",
 ];
 
+function buildSteps(questions: DebriefQuestions) {
+  return SECTION_KEYS.flatMap((sectionKey) =>
+    questions[sectionKey].map((question, questionIndex) => ({
+      sectionKey,
+      questionIndex,
+      question,
+      responseKey: `${sectionKey}_${questionIndex}`,
+    }))
+  );
+}
+
+function firstOpenStepIndex(steps: ReturnType<typeof buildSteps>, saved: Record<string, string>) {
+  const idx = steps.findIndex((step) => !saved[step.responseKey]?.trim());
+  return idx === -1 ? steps.length - 1 : idx;
+}
+
 export default function NightDebriefPage() {
   const { t, locale } = useLocale();
   const [phase, setPhase] = useState<Phase>("intro");
   const [questions, setQuestions] = useState<DebriefQuestions | null>(null);
-  const [sectionIndex, setSectionIndex] = useState(0);
-  const [questionIndex, setQuestionIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [result, setResult] = useState<NightDebrief | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [resumeHint, setResumeHint] = useState(false);
+
+  const steps = useMemo(() => (questions ? buildSteps(questions) : []), [questions]);
 
   const sections = useMemo(
     () =>
@@ -43,9 +62,21 @@ export default function NightDebriefPage() {
     Promise.all([api.debriefQuestions(), api.debriefToday()])
       .then(([q, today]) => {
         setQuestions(q);
+        const flat = buildSteps(q);
+        const saved = (today?.responses ?? {}) as Record<string, string>;
+
         if (today?.aiAssessment) {
           setResult(today);
           setPhase("analysis");
+          return;
+        }
+
+        if (Object.keys(saved).length > 0) {
+          setResponses(saved);
+          const resumeAt = firstOpenStepIndex(flat, saved);
+          setStepIndex(resumeAt);
+          setResumeHint(resumeAt > 0);
+          setPhase("questions");
         }
       })
       .catch(console.error);
@@ -59,40 +90,46 @@ export default function NightDebriefPage() {
     );
   }
 
-  const currentSection = sections[sectionIndex];
-  const currentQuestions = questions?.[currentSection.key] ?? [];
-  const currentQuestion = currentQuestions[questionIndex];
-  const responseKey = `${currentSection.key}_${questionIndex}`;
+  const currentStep = steps[stepIndex];
+  const currentSection = sections.find((s) => s.key === currentStep?.sectionKey);
+  const isLastStep = stepIndex >= steps.length - 1;
 
-  const saveAndNext = () => {
-    const updated = { ...responses, [responseKey]: currentAnswer };
-    setResponses(updated);
-    setCurrentAnswer("");
+  const saveAndNext = async () => {
+    if (!currentStep || !currentAnswer.trim()) return;
 
-    if (questionIndex < currentQuestions.length - 1) {
-      setQuestionIndex(questionIndex + 1);
-      return;
-    }
-    if (sectionIndex < sections.length - 1) {
-      setSectionIndex(sectionIndex + 1);
-      setQuestionIndex(0);
-      return;
-    }
-    submitDebrief(updated);
-  };
-
-  const submitDebrief = async (finalResponses: Record<string, string>) => {
-    setSubmitting(true);
+    setBusy(true);
     try {
-      const debrief = await api.submitDebrief(finalResponses);
-      setResult(debrief);
-      setPhase("analysis");
+      const debrief = await api.saveDebriefAnswer({
+        key: currentStep.responseKey,
+        answer: currentAnswer.trim(),
+        finalize: isLastStep,
+      });
+
+      const updated = {
+        ...responses,
+        [currentStep.responseKey]: currentAnswer.trim(),
+      };
+      setResponses(updated);
+      setCurrentAnswer("");
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 1500);
+
+      if (isLastStep) {
+        setResult(debrief);
+        setPhase("analysis");
+        return;
+      }
+
+      setStepIndex(stepIndex + 1);
+    } catch (err) {
+      console.error(err);
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
   };
 
   if (phase === "intro") {
+    const savedCount = Object.values(responses).filter(Boolean).length;
     return (
       <div className="min-h-[80vh] flex flex-col items-center justify-center text-center px-4">
         <motion.div
@@ -107,14 +144,28 @@ export default function NightDebriefPage() {
           <h1 className="text-4xl font-light text-zinc-50 glow-text mb-4">
             {t("debrief.chamberTitle")}
           </h1>
-          <p className="text-zinc-400 leading-relaxed mb-10">{t("debrief.chamberDesc")}</p>
-          <button
-            type="button"
-            onClick={() => setPhase("questions")}
-            className="px-8 py-3 rounded-2xl bg-indigo-500/30 border border-indigo-400/40 text-indigo-100 hover:bg-indigo-500/40 transition"
-          >
-            {t("debrief.begin")}
-          </button>
+          <p className="text-zinc-400 leading-relaxed mb-6">{t("debrief.chamberDesc")}</p>
+          <p className="text-sm text-zinc-500 mb-10">{t("debrief.quickNote")}</p>
+          {savedCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setStepIndex(firstOpenStepIndex(steps, responses));
+                setPhase("questions");
+              }}
+              className="px-8 py-3 rounded-2xl bg-indigo-500/30 border border-indigo-400/40 text-indigo-100 hover:bg-indigo-500/40 transition"
+            >
+              {t("debrief.resume")}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setPhase("questions")}
+              className="px-8 py-3 rounded-2xl bg-indigo-500/30 border border-indigo-400/40 text-indigo-100 hover:bg-indigo-500/40 transition"
+            >
+              {t("debrief.begin")}
+            </button>
+          )}
         </motion.div>
       </div>
     );
@@ -205,10 +256,9 @@ export default function NightDebriefPage() {
     );
   }
 
-  const progress =
-    ((sectionIndex * 10 + questionIndex) /
-      (sections.length * 10 + (currentQuestions.length || 1))) *
-    100;
+  if (!currentStep) return null;
+
+  const progress = ((stepIndex + 1) / steps.length) * 100;
 
   return (
     <div className="min-h-[80vh] flex flex-col max-w-2xl mx-auto">
@@ -219,37 +269,52 @@ export default function NightDebriefPage() {
             animate={{ width: `${Math.min(progress, 100)}%` }}
           />
         </div>
-        <p className="text-xs text-zinc-600 mt-2 uppercase tracking-widest">
-          {currentSection.label} · {questionIndex + 1} / {currentQuestions.length}
-        </p>
+        <div className="flex items-center justify-between mt-2 gap-2">
+          <p className="text-xs text-zinc-600 uppercase tracking-widest">
+            {currentSection?.label} · {t("debrief.questionOf", { n: stepIndex + 1, total: steps.length })}
+          </p>
+          {savedFlash ? (
+            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400">
+              <Check className="h-3 w-3" /> {t("debrief.saved")}
+            </span>
+          ) : resumeHint && stepIndex > 0 ? (
+            <span className="text-[10px] text-indigo-400/80">{t("debrief.resumed")}</span>
+          ) : null}
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
         <motion.div
-          key={responseKey}
+          key={currentStep.responseKey}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
           className="flex-1 flex flex-col"
         >
           <h2 className="text-2xl font-light text-zinc-100 leading-snug mb-8">
-            {currentQuestion}
+            {currentStep.question}
           </h2>
           <VoiceTextarea
             value={currentAnswer}
             onChange={setCurrentAnswer}
             placeholder={t("debrief.reflectPlaceholder")}
-            rows={6}
-            disabled={submitting}
+            rows={5}
+            disabled={busy}
             className="flex-1 w-full rounded-2xl glass p-5 text-zinc-100 placeholder:text-zinc-600 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
           />
           <button
             type="button"
-            onClick={saveAndNext}
-            disabled={!currentAnswer.trim() || submitting}
+            onClick={() => void saveAndNext()}
+            disabled={!currentAnswer.trim() || busy}
             className="mt-6 flex items-center justify-center gap-2 py-3 rounded-2xl bg-indigo-500/30 border border-indigo-400/40 text-indigo-100 disabled:opacity-40 hover:bg-indigo-500/40 transition"
           >
-            {submitting ? t("common.analyzing") : t("common.continue")}
+            {busy
+              ? isLastStep
+                ? t("common.analyzing")
+                : t("debrief.saving")
+              : isLastStep
+                ? t("debrief.finish")
+                : t("common.continue")}
             <ChevronRight className="h-4 w-4" />
           </button>
         </motion.div>
