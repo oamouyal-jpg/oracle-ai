@@ -40,15 +40,39 @@ const domainNames: Record<AppLocale, Record<string, string>> = {
 };
 
 const currentStates: Record<AppLocale, Record<string, string>> = {
-  en: { "Active development": "Active development" },
-  he: { "Active development": "בפיתוח פעיל" },
-  fr: { "Active development": "Développement actif" },
+  en: {
+    "Active development": "Active development",
+    on_track: "On track",
+    active: "Active development",
+    needs_attention: "Needs attention",
+  },
+  he: {
+    "Active development": "בפיתוח פעיל",
+    on_track: "במסלול",
+    active: "מתקדם",
+    needs_attention: "דורש טיפול",
+  },
+  fr: {
+    "Active development": "En cours",
+    on_track: "Sur la bonne voie",
+    active: "En cours",
+    needs_attention: "À surveiller",
+  },
 };
 
 const issues: Record<AppLocale, Record<string, string>> = {
-  en: { "Needs focused attention": "Needs focused attention" },
-  he: { "Needs focused attention": "דורש תשומת לב ממוקדת" },
-  fr: { "Needs focused attention": "Nécessite une attention ciblée" },
+  en: {
+    "Needs focused attention": "Needs focused attention",
+    "No completed tasks yet": "No completed tasks yet",
+  },
+  he: {
+    "Needs focused attention": "צריך להתמקד כאן",
+    "No completed tasks yet": "עדיין לא סיימת אף משימה",
+  },
+  fr: {
+    "Needs focused attention": "Mérite votre attention",
+    "No completed tasks yet": "Aucune tâche terminée pour l'instant",
+  },
 };
 
 const goalTemplates: Record<AppLocale, { pattern: RegExp; template: (domain: string) => string }> = {
