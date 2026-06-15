@@ -15,6 +15,7 @@ import {
   skipCurrentStep,
   submitClarifyingAnswer,
   retryClarityPlan,
+  requestClarityAdvice,
 } from "../services/clarityEngine.js";
 import { createWeekPlan } from "../services/weekPlanEngine.js";
 import { runStateDetection } from "../services/stateDetectionEngine.js";
@@ -175,6 +176,33 @@ clarityRouter.post("/:id/check-in", asyncHandler(async (req, res) => {
 
   const detail = formatIssueDetail(await loadIssueDetail(issueId, userId));
   res.json({ ...detail, aiSource: source, stateDetection: stateResult });
+}));
+
+clarityRouter.post("/:id/advice", asyncHandler(async (req, res) => {
+  const userId = await resolveUserId(req);
+  const locale = requestLocale(req);
+  const issueId = idParam(req.params.id);
+  const body = z
+    .object({
+      question: z.string().min(3),
+      stepId: z.string().optional(),
+      taskId: z.string().optional(),
+      missionId: z.string().optional(),
+    })
+    .parse(req.body);
+
+  const result = await requestClarityAdvice(
+    issueId,
+    userId,
+    body.question,
+    locale,
+    {
+      stepId: body.stepId,
+      taskId: body.taskId,
+      missionId: body.missionId,
+    }
+  );
+  res.json(result);
 }));
 
 clarityRouter.post("/:id/promote", asyncHandler(async (req, res) => {

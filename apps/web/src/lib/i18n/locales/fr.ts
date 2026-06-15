@@ -242,6 +242,13 @@ export const fr = {
     weekOverdue: "{count} en retard — Oracle a gardé la plus urgente en premier.",
     weekUnscheduled: "Non planifié",
     readTask: "Écouter",
+    askAdvice: "Demander conseil à Oracle",
+    advicePlaceholder: "Qu'est-ce qui bloque ? Sur quoi faire attention pour cette étape ?",
+    adviceSubmit: "Obtenir un conseil",
+    adviceLoading: "Oracle réfléchit…",
+    adviceTitle: "Conseil d'Oracle",
+    adviceScopeStep: "Cette étape",
+    adviceScopeMission: "Mission",
   },
   stateCheck: {
     title: "État actuel",

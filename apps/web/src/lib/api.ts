@@ -252,6 +252,14 @@ export const api = {
         body: JSON.stringify({ rawText }),
       }
     ),
+  clarityAdvice: (
+    issueId: string,
+    payload: { question: string; stepId?: string; taskId?: string; missionId?: string }
+  ) =>
+    fetchApi<{ advice: string; scopeLabel: string; source: "openai" | "offline" }>(
+      `/clarity/${issueId}/advice`,
+      { method: "POST", body: JSON.stringify(payload) }
+    ),
   promoteClarityIssue: (issueId: string) =>
     fetchApi<ClarityIssueDetail & { missionId: string }>(`/clarity/${issueId}/promote`, {
       method: "POST",

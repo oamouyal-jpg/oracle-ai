@@ -240,6 +240,13 @@ export const he = {
     weekOverdue: "{count} באיחור. Oracle שם ראשון את הדחוף ביותר.",
     weekUnscheduled: "ללא תאריך",
     readTask: "הקרא בקול",
+    askAdvice: "שאל את Oracle לעצה",
+    advicePlaceholder: "מה תקוע? על מה לשים לב בצעד הזה?",
+    adviceSubmit: "קבל עצה",
+    adviceLoading: "Oracle חושב…",
+    adviceTitle: "העצה של Oracle",
+    adviceScopeStep: "הצעד",
+    adviceScopeMission: "יעד",
   },
   stateCheck: {
     title: "איך אתה עכשיו?",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -17,7 +17,8 @@ import { PatternMatchCard } from "@/components/state/PatternMatchCard";
 import { NextSafeActionCard } from "@/components/state/NextSafeActionCard";
 import { KnownFactsVsAssumptions } from "@/components/state/KnownFactsVsAssumptions";
 import { OracleCanDoThisCard } from "@/components/agent/OracleCanDoThisCard";
-import { VoiceTextarea } from "@/components/speech/VoiceTextarea";
+import { ClarityAdvicePanel } from "@/components/clarity/ClarityAdvicePanel";
+import { VoiceTextarea, type VoiceTextareaHandle } from "@/components/speech/VoiceTextarea";
 import { SpeakButton } from "@/components/speech/SpeakButton";
 import { api, type ClarityIssueDetail, type ClarityStep, type StateDetectionResult, type AgentAction } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -37,6 +38,7 @@ export default function ClarityIssuePage() {
   const [lastStateCheck, setLastStateCheck] = useState<StateDetectionResult | null>(null);
   const [agentAction, setAgentAction] = useState<AgentAction | null>(null);
   const [busy, setBusy] = useState(false);
+  const checkInVoiceRef = useRef<VoiceTextareaHandle>(null);
 
   const load = useCallback(() => {
     return api
@@ -131,6 +133,7 @@ export default function ClarityIssuePage() {
 
   const submitCheckIn = async () => {
     if (!checkInText.trim()) return;
+    checkInVoiceRef.current?.stopListening();
     setBusy(true);
     try {
       const updated = await api.clarityCheckIn(id, checkInText.trim());
@@ -422,6 +425,15 @@ export default function ClarityIssuePage() {
         </GlassCard>
       ) : null}
 
+      {step || issue.promotedMission ? (
+        <ClarityAdvicePanel
+          issueId={id}
+          step={step}
+          mission={issue.promotedMission}
+          disabled={busy}
+        />
+      ) : null}
+
       <OracleCanDoThisCard
         action={agentAction}
         busy={busy}
@@ -549,6 +561,7 @@ export default function ClarityIssuePage() {
             {t("clarity.checkIn")}
           </p>
           <VoiceTextarea
+            ref={checkInVoiceRef}
             value={checkInText}
             onChange={setCheckInText}
             placeholder={t("clarity.checkInPlaceholder")}

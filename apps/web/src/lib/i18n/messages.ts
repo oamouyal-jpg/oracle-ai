@@ -257,6 +257,13 @@ const en = {
     weekOverdue: "{count} overdue â€” Oracle kept the most urgent one first.",
     weekUnscheduled: "Unscheduled",
     readTask: "Read aloud",
+    askAdvice: "Ask Oracle for advice",
+    advicePlaceholder: "What's stuck? What should you watch out for on this step?",
+    adviceSubmit: "Get advice",
+    adviceLoading: "Oracle is thinking…",
+    adviceTitle: "Oracle's advice",
+    adviceScopeStep: "This step",
+    adviceScopeMission: "Mission",
   },
   stateCheck: {
     title: "State Check",

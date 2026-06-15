@@ -119,11 +119,33 @@ export function useSpeechRecognition(options: {
 
   const stop = useCallback(() => {
     activeRef.current = false;
-    recRef.current?.stop();
+    const rec = recRef.current;
     recRef.current = null;
+    if (rec) {
+      rec.onend = null;
+      rec.onresult = null;
+      rec.onerror = null;
+      try {
+        if (typeof rec.abort === "function") rec.abort();
+        else rec.stop();
+      } catch {
+        /* already stopped */
+      }
+    }
     setListening(false);
     resetSession();
   }, [resetSession]);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") stop();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      stop();
+    };
+  }, [stop]);
 
   const bindRecognition = useCallback(
     (rec: SpeechRecognition) => {

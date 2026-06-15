@@ -763,6 +763,98 @@ export async function promoteIssueToMission(issueId: string, userId: string): Pr
   return mission.id;
 }
 
+export async function requestClarityAdvice(
+  issueId: string,
+  userId: string,
+  question: string,
+  locale: AppLocale,
+  scope?: { stepId?: string; taskId?: string; missionId?: string }
+): Promise<{ advice: string; scopeLabel: string; source: "openai" | "offline" }> {
+  const issue = await prisma.clarityIssue.findFirst({
+    where: { id: issueId, userId },
+    include: {
+      outcome: true,
+      steps: { orderBy: { priorityOrder: "asc" } },
+      promotedMission: { select: { id: true, title: true } },
+    },
+  });
+  if (!issue) throw new Error("Issue not found");
+
+  const step = scope?.stepId
+    ? issue.steps.find((s) => s.id === scope.stepId)
+    : issue.steps.find((s) => s.status === "CURRENT");
+
+  const taskId = scope?.taskId ?? step?.linkedTaskId ?? undefined;
+  const task = taskId
+    ? await prisma.task.findFirst({
+        where: { id: taskId, userId },
+        include: { mission: { select: { id: true, title: true } } },
+      })
+    : null;
+
+  let mission = issue.promotedMission;
+  if (scope?.missionId) {
+    mission = await prisma.mission.findFirst({
+      where: { id: scope.missionId, userId },
+      select: { id: true, title: true },
+    });
+  } else if (task?.mission) {
+    mission = task.mission;
+  }
+
+  const prompt = `The user wants scoped coaching advice — NOT a new plan, NOT a task list. Return JSON:
+{
+  "advice": "2-4 short paragraphs: practical, calm, specific to the scope below",
+  "scopeLabel": "5-8 word label for what this advice covers"
+}
+
+Clarity issue: ${issue.title}
+North Star / focus: ${issue.outcome?.northStarStatement ?? "n/a"}
+${step ? `Current step: ${step.title}\nStep detail: ${step.description ?? ""}\nWhy now: ${step.whyThisNow ?? ""}\nPrepare: ${step.prepareNotes ?? ""}` : ""}
+${task ? `Linked task: ${task.title} (status: ${task.status})` : ""}
+${mission ? `Mission: ${mission.title}` : ""}
+
+User question:
+${question.trim()}`;
+
+  type AdviceResult = { advice: string; scopeLabel?: string };
+  const { data, source } = await callClarityJson<AdviceResult>(prompt, locale);
+
+  const advice =
+    data?.advice ??
+    (locale === "he"
+      ? "התמקד רק בצעד הנוכחי. התחל ב-15 דקות קטנות, ואז תבדוק שוב."
+      : locale === "fr"
+        ? "Concentrez-vous sur l'étape actuelle. Commencez par 15 minutes, puis réévaluez."
+        : "Focus on the current step only. Start with 15 minutes, then reassess.");
+
+  const scopeLabel =
+    data?.scopeLabel ?? step?.title ?? task?.title ?? mission?.title ?? issue.title;
+
+  await prisma.$transaction([
+    prisma.clarityMessage.create({
+      data: {
+        userId,
+        issueId,
+        role: "USER",
+        kind: "COACHING",
+        content: question.trim(),
+      },
+    }),
+    prisma.clarityMessage.create({
+      data: {
+        userId,
+        issueId,
+        role: "ASSISTANT",
+        kind: "COACHING",
+        content: advice,
+      },
+    }),
+  ]);
+
+  return { advice, scopeLabel, source };
+}
+
 export function formatIssueDetail(issue: Awaited<ReturnType<typeof loadIssueDetail>>) {
   if (!issue) return null;
   const latestState = issue.stateSnapshots?.[0] ?? null;

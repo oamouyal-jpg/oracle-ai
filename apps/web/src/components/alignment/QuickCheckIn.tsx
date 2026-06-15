@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Send } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { VoiceTextarea } from "@/components/speech/VoiceTextarea";
+import { VoiceTextarea, type VoiceTextareaHandle } from "@/components/speech/VoiceTextarea";
 import { SpeakButton } from "@/components/speech/SpeakButton";
 import { api } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -15,9 +15,11 @@ export function QuickCheckIn({ onSubmitted }: { onSubmitted?: () => void }) {
   const [energy, setEnergy] = useState(5);
   const [loading, setLoading] = useState(false);
   const [lastAnalysis, setLastAnalysis] = useState<string | null>(null);
+  const voiceRef = useRef<VoiceTextareaHandle>(null);
 
   const submit = async () => {
     if (!text.trim() || loading) return;
+    voiceRef.current?.stopListening();
     setLoading(true);
     try {
       const { reflection } = await api.submitReflection(text.trim(), mood, energy);
@@ -36,6 +38,7 @@ export function QuickCheckIn({ onSubmitted }: { onSubmitted?: () => void }) {
       </p>
       <p className="text-sm text-zinc-500 mb-4">{t("reflection.subtitle")}</p>
       <VoiceTextarea
+        ref={voiceRef}
         value={text}
         onChange={setText}
         placeholder={t("reflection.placeholder")}

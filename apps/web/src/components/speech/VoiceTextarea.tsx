@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { clsx } from "clsx";
-import { SpeechInputButton } from "./SpeechInputButton";
+import { SpeechInputButton, type SpeechInputHandle } from "./SpeechInputButton";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
+
+export type VoiceTextareaHandle = {
+  stopListening: () => void;
+};
 
 type Props = Omit<
   React.TextareaHTMLAttributes<HTMLTextAreaElement>,
@@ -15,18 +19,25 @@ type Props = Omit<
   wrapperClassName?: string;
 };
 
-export function VoiceTextarea({
-  value,
-  onChange,
-  lang,
-  wrapperClassName,
-  className,
-  placeholder,
-  disabled,
-  ...rest
-}: Props) {
+export const VoiceTextarea = forwardRef<VoiceTextareaHandle, Props>(function VoiceTextarea(
+  { value, onChange, lang, wrapperClassName, className, placeholder, disabled, ...rest },
+  ref
+) {
   const { t, speechLang } = useLocale();
   const [listening, setListening] = useState(false);
+  const micRef = useRef<SpeechInputHandle>(null);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      stopListening: () => micRef.current?.stop(),
+    }),
+    []
+  );
+
+  useEffect(() => {
+    return () => micRef.current?.stop();
+  }, []);
 
   return (
     <div className={clsx("flex gap-2 items-start", wrapperClassName)}>
@@ -39,6 +50,7 @@ export function VoiceTextarea({
         className={clsx("flex-1 min-w-0", className)}
       />
       <SpeechInputButton
+        ref={micRef}
         className="h-10 w-10 shrink-0 rounded-xl"
         lang={lang ?? speechLang}
         title={t("speech.voiceInput")}
@@ -49,4 +61,4 @@ export function VoiceTextarea({
       />
     </div>
   );
-}
+});
