@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { VoiceInput } from "@/components/speech/VoiceInput";
 import { TaskScheduleEditor } from "@/components/tasks/TaskScheduleEditor";
@@ -10,6 +11,8 @@ import {
   type FocusTasksResult,
   type Task,
   type TaskStatus,
+  type ClarityTasksBundle,
+  type ClarityIssueMode,
 } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
@@ -23,6 +26,7 @@ import { formatTaskDueLabel } from "@/lib/taskScheduling";
 export default function TasksPage() {
   const { t, locale } = useLocale();
   const [menu, setMenu] = useState<FocusTasksResult | null>(null);
+  const [clarityPlans, setClarityPlans] = useState<ClarityTasksBundle[]>([]);
   const [otherTasks, setOtherTasks] = useState<Task[]>([]);
   const [recentClosed, setRecentClosed] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,14 +36,33 @@ export default function TasksPage() {
   const [submittingFollowUp, setSubmittingFollowUp] = useState<string | null>(null);
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
   const [showCreateTask, setShowCreateTask] = useState(false);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+  const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(new Set());
 
-  const statuses = useMemo(
+  const primaryStatuses = useMemo(
+    (): { value: TaskStatus; label: string; activeClass: string; idleClass: string }[] => [
+      {
+        value: "COMPLETED",
+        label: t("tasks.statusDone"),
+        activeClass: "bg-emerald-500/25 border-emerald-400/50 text-emerald-100",
+        idleClass: "border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/15",
+      },
+      {
+        value: "PARTIAL",
+        label: t("tasks.statusPartial"),
+        activeClass: "bg-cyan-500/25 border-cyan-400/50 text-cyan-100",
+        idleClass: "border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/15",
+      },
+    ],
+    [t]
+  );
+
+  const secondaryStatuses = useMemo(
     (): { value: TaskStatus; label: string; color: string }[] => [
-      { value: "COMPLETED", label: t("tasks.statusDone"), color: "text-emerald-400" },
-      { value: "PARTIAL", label: t("tasks.statusPartial"), color: "text-cyan-400" },
-      { value: "SKIPPED", label: t("tasks.statusSkipped"), color: "text-zinc-500" },
-      { value: "DELAYED", label: t("tasks.statusDelayed"), color: "text-amber-400" },
-      { value: "RESCHEDULED", label: t("tasks.statusReschedule"), color: "text-indigo-400" },
+      { value: "IN_PROGRESS", label: t("tasks.statusInProgress"), color: "text-indigo-300" },
+      { value: "SKIPPED", label: t("tasks.statusSkipped"), color: "text-zinc-400" },
+      { value: "DELAYED", label: t("tasks.statusDelayed"), color: "text-amber-300" },
+      { value: "RESCHEDULED", label: t("tasks.statusReschedule"), color: "text-indigo-300" },
     ],
     [t]
   );
@@ -51,23 +74,38 @@ export default function TasksPage() {
     return map;
   }, [menu]);
 
+  const applyTaskLists = (
+    result: FocusTasksResult,
+    all: Task[],
+    plans: ClarityTasksBundle[]
+  ) => {
+    setMenu(result);
+    setClarityPlans(plans);
+    const activeIds = new Set(result.tasks.map((task) => task.id));
+    const closedIds = new Set(result.recentFollowUps.map((f) => f.taskId));
+    const clarityTaskIds = new Set(plans.flatMap((plan) => plan.tasks.map((task) => task.id)));
+    setRecentClosed(all.filter((task) => closedIds.has(task.id)));
+    setOtherTasks(
+      all.filter(
+        (task) =>
+          !activeIds.has(task.id) &&
+          !closedIds.has(task.id) &&
+          !clarityTaskIds.has(task.id) &&
+          !task.aiGenerated
+      )
+    );
+  };
+
   const load = async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const [result, all] = await Promise.all([api.focusTasks(), api.tasks()]);
-      setMenu(result);
-      const activeIds = new Set(result.tasks.map((task) => task.id));
-      const closedIds = new Set(result.recentFollowUps.map((f) => f.taskId));
-      setRecentClosed(all.filter((task) => closedIds.has(task.id)));
-      setOtherTasks(
-        all.filter(
-          (task) =>
-            !activeIds.has(task.id) &&
-            !closedIds.has(task.id) &&
-            !task.aiGenerated
-        )
-      );
+      const [result, all, plans] = await Promise.all([
+        api.focusTasks(),
+        api.tasks(),
+        api.clarityTasks(),
+      ]);
+      applyTaskLists(result, all, plans);
     } catch (e) {
       console.error(e);
       setLoadError(e instanceof Error ? e.message : t("tasks.loadError"));
@@ -104,9 +142,23 @@ export default function TasksPage() {
   };
 
   const setStatus = async (id: string, status: TaskStatus) => {
-    const result = await api.updateTask(id, { status });
-    if (result.replenished?.created) notify(t("tasks.replenished"));
-    await load();
+    setUpdatingStatusId(id);
+    try {
+      const result = await api.updateTask(id, { status });
+      if (result.replenished?.created) notify(t("tasks.replenished"));
+      await load();
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  };
+
+  const toggleTaskExpanded = (taskId: string) => {
+    setExpandedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
   };
 
   const saveSchedule = async (
@@ -162,20 +214,12 @@ export default function TasksPage() {
   const refreshMenu = async () => {
     setLoading(true);
     try {
-      const result = await api.refreshFocusTasks();
-      const all = await api.tasks();
-      setMenu(result);
-      const activeIds = new Set(result.tasks.map((task) => task.id));
-      const closedIds = new Set(result.recentFollowUps.map((f) => f.taskId));
-      setRecentClosed(all.filter((task) => closedIds.has(task.id)));
-      setOtherTasks(
-        all.filter(
-          (task) =>
-            !activeIds.has(task.id) &&
-            !closedIds.has(task.id) &&
-            !task.aiGenerated
-        )
-      );
+      const [result, all, plans] = await Promise.all([
+        api.refreshFocusTasks(),
+        api.tasks(),
+        api.clarityTasks(),
+      ]);
+      applyTaskLists(result, all, plans);
     } catch (e) {
       console.error(e);
     } finally {
@@ -187,11 +231,15 @@ export default function TasksPage() {
     s === "COMPLETED" || s === "SKIPPED" || s === "CANCELLED";
 
   const renderFollowUp = (task: Task, followUp?: FocusFollowUp) => {
-    if (!followUp || isClosed(task.status)) return null;
+    if (!followUp || task.status === "CANCELLED") return null;
     const busy = submittingFollowUp === task.id;
 
     return (
-      <div className="mt-3 ml-8 p-3 rounded-lg bg-violet-500/5 border border-violet-500/15 space-y-2">
+      <div
+        className="mt-3 ml-8 p-3 rounded-lg bg-violet-500/5 border border-violet-500/15 space-y-2"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
         <p className="text-[10px] uppercase tracking-wide text-violet-400/80">
           {t("tasks.followUp")}
         </p>
@@ -236,9 +284,80 @@ export default function TasksPage() {
     );
   };
 
-  const renderTaskRow = (task: Task, rank?: number, assisted = false) => {
+  const renderStatusActions = (task: Task, clarityMeta?: { locked: boolean }) => {
+    if (clarityMeta?.locked) return null;
+    const busy = updatingStatusId === task.id;
+
+    return (
+      <div className="mt-3 ml-8 space-y-2">
+        <div className="flex flex-wrap gap-2">
+          {primaryStatuses.map((s) => {
+            const active = task.status === s.value;
+            return (
+              <button
+                key={s.value}
+                type="button"
+                disabled={busy}
+                onClick={() => void setStatus(task.id, s.value)}
+                className={`min-h-10 flex-1 min-w-[7rem] rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 ${
+                  active ? s.activeClass : s.idleClass
+                }`}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              setEditingScheduleId(editingScheduleId === task.id ? null : task.id)
+            }
+            className="text-[10px] px-2.5 py-1.5 rounded-lg border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10 disabled:opacity-40"
+          >
+            {t("tasks.scheduleBtn")}
+          </button>
+          {secondaryStatuses.map((s) => {
+            const active = task.status === s.value;
+            return (
+              <button
+                key={s.value}
+                type="button"
+                disabled={busy}
+                onClick={() => void setStatus(task.id, s.value)}
+                className={`text-[10px] px-2.5 py-1.5 rounded-lg border transition-colors disabled:opacity-40 ${
+                  active
+                    ? "bg-white/10 border-white/30 text-zinc-100"
+                    : `border-white/10 hover:bg-white/5 ${s.color}`
+                }`}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderTaskRow = (
+    task: Task,
+    rank?: number,
+    assisted = false,
+    clarityMeta?: {
+      issueId: string;
+      mode: ClarityIssueMode;
+      isCurrent: boolean;
+      locked: boolean;
+    }
+  ) => {
     const followUp = followUpByTask.get(task.id);
-    const open = !isClosed(task.status);
+    const closed = isClosed(task.status);
+    const open = !closed;
+    const expanded = expandedTaskIds.has(task.id);
+    const showDetails = open || expanded || task.status === "PARTIAL";
     const due = formatTaskDueLabel(task.dueDate, t, locale);
     const scheduled = task.scheduledAt
       ? `${t("tasks.scheduled")}: ${new Date(task.scheduledAt).toLocaleString(locale, {
@@ -251,7 +370,22 @@ export default function TasksPage() {
 
     return (
       <li key={task.id} className="py-4 first:pt-0 last:pb-0">
-        <div className="flex flex-wrap items-start gap-3 justify-between">
+        <div
+          className={`flex flex-wrap items-start gap-3 justify-between ${closed ? "cursor-pointer" : ""}`}
+          onClick={closed ? () => toggleTaskExpanded(task.id) : undefined}
+          onKeyDown={
+            closed
+              ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    toggleTaskExpanded(task.id);
+                  }
+                }
+              : undefined
+          }
+          role={closed ? "button" : undefined}
+          tabIndex={closed ? 0 : undefined}
+        >
           <div className="flex-1 min-w-[200px]">
             <div className="flex items-start gap-2">
               {rank != null && (
@@ -259,14 +393,34 @@ export default function TasksPage() {
                   {rank}
                 </span>
               )}
-              <div>
+              <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className={open ? "text-zinc-100" : "text-zinc-500 line-through"}>
+                  <p
+                    className={
+                      closed && !expanded ? "text-zinc-500 line-through" : "text-zinc-100"
+                    }
+                  >
                     {localizeTaskTitle(task.title, locale)}
                   </p>
                   {assisted && (
                     <span className="text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded border border-violet-500/30 text-violet-300/90">
                       {t("tasks.assistedBadge")}
+                    </span>
+                  )}
+                  {clarityMeta && (
+                    <span className="text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded border border-emerald-500/30 text-emerald-300/90">
+                      {clarityMeta.mode === "WEEK_PLAN"
+                        ? clarityMeta.isCurrent
+                          ? t("tasks.weekPlanCurrent")
+                          : t("tasks.weekPlanBadge")
+                        : clarityMeta.isCurrent
+                          ? t("tasks.weekPlanCurrent")
+                          : t("tasks.clarityBadge")}
+                    </span>
+                  )}
+                  {clarityMeta?.locked && open && (
+                    <span className="text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded border border-zinc-600/40 text-zinc-500">
+                      {t("tasks.weekPlanLocked")}
                     </span>
                   )}
                   {assisted && open && task.status === "PARTIAL" && (
@@ -304,7 +458,7 @@ export default function TasksPage() {
                 )}
               </div>
             </div>
-            {assisted && task.description && open && (
+            {assisted && task.description && showDetails && (
               <div className="mt-2 ml-8 p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/15">
                 <p className="text-[10px] uppercase tracking-wide text-indigo-400/80 mb-1">
                   {t("tasks.guidance")}
@@ -312,9 +466,19 @@ export default function TasksPage() {
                 <p className="text-sm text-zinc-300 leading-relaxed">{task.description}</p>
               </div>
             )}
+            {clarityMeta && task.description && showDetails && !assisted && (
+              <div className="mt-2 ml-8 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
+                <p className="text-[10px] uppercase tracking-wide text-emerald-400/80 mb-1">
+                  {t("tasks.guidance")}
+                </p>
+                <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
+                  {task.description}
+                </p>
+              </div>
+            )}
             {renderFollowUp(task, followUp)}
-            {open && editingScheduleId === task.id ? (
-              <div className="mt-3 ml-8">
+            {showDetails && editingScheduleId === task.id ? (
+              <div className="mt-3 ml-8" onClick={(e) => e.stopPropagation()}>
                 <TaskScheduleEditor
                   task={task}
                   t={t}
@@ -322,6 +486,11 @@ export default function TasksPage() {
                   onCancel={() => setEditingScheduleId(null)}
                 />
               </div>
+            ) : null}
+            {task.completionNote && showDetails ? (
+              <p className="mt-2 ml-8 text-xs leading-relaxed text-zinc-500 whitespace-pre-line">
+                {task.completionNote}
+              </p>
             ) : null}
             <div className="flex gap-3 mt-1 ml-8 text-[10px] text-zinc-600">
               {task.emotionalDifficulty != null && (
@@ -341,29 +510,9 @@ export default function TasksPage() {
             {t("tasks.priorityLabel")} {task.priority}
           </span>
         </div>
-        {open && (
-          <div className="flex flex-wrap gap-1.5 mt-3 ml-8">
-            <button
-              type="button"
-              onClick={() =>
-                setEditingScheduleId(editingScheduleId === task.id ? null : task.id)
-              }
-              className="text-[10px] px-2 py-1 rounded-lg border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10"
-            >
-              {t("tasks.scheduleBtn")}
-            </button>
-            {statuses.map((s) => (
-              <button
-                key={s.value}
-                type="button"
-                onClick={() => setStatus(task.id, s.value)}
-                className={`text-[10px] px-2 py-1 rounded-lg border border-white/10 hover:bg-white/5 ${s.color}`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        )}
+        <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          {renderStatusActions(task, clarityMeta ? { locked: clarityMeta.locked } : undefined)}
+        </div>
       </li>
     );
   };
@@ -419,6 +568,45 @@ export default function TasksPage() {
           <p className="text-xs text-zinc-600">{t("tasks.newTaskPlaceholder")}</p>
         )}
       </GlassCard>
+
+      {clarityPlans.length > 0 && (
+        <section>
+          <div className="mb-3">
+            <h2 className="text-lg font-medium text-zinc-100">{t("tasks.fromClarity")}</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">{t("tasks.fromClaritySubtitle")}</p>
+          </div>
+          {clarityPlans.map((plan) => (
+            <div key={plan.issueId} className="mb-6">
+              <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="font-medium text-zinc-200">{plan.issueTitle}</p>
+                  <span className="mt-1 inline-block rounded-full border border-indigo-400/30 bg-indigo-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-indigo-300/90">
+                    {plan.mode === "WEEK_PLAN" ? t("tasks.weekPlanBadge") : t("tasks.clarityBadge")}
+                  </span>
+                </div>
+                <Link
+                  href={`/clarity/${plan.issueId}`}
+                  className="text-xs text-indigo-300 hover:text-indigo-100"
+                >
+                  {t("tasks.openInClarity")} →
+                </Link>
+              </div>
+              <GlassCard glow>
+                <ul className="divide-y divide-white/5">
+                  {plan.tasks.map((task, i) =>
+                    renderTaskRow(task, i + 1, false, {
+                      issueId: plan.issueId,
+                      mode: plan.mode,
+                      isCurrent: task.isCurrent,
+                      locked: task.stepStatus === "LOCKED",
+                    })
+                  )}
+                </ul>
+              </GlassCard>
+            </div>
+          ))}
+        </section>
+      )}
 
       <section>
         <div className="mb-3">

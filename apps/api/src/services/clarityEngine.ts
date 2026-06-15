@@ -1,8 +1,12 @@
 import { prisma } from "../lib/prisma.js";
-import { createChatCompletion } from "../lib/openai.js";
 import { asStringArray } from "../lib/arrays.js";
+import { createChatCompletion } from "../lib/openai.js";
 import type { AppLocale } from "../lib/locale.js";
 import type { ClarityConstraintType } from "@prisma/client";
+import {
+  createTaskForClarityStep,
+  deleteLinkedTasksForIssue,
+} from "./clarityTaskSync.js";
 import { queueActionsForCurrentStep, formatAgentAction, hasDraftArtifacts } from "./actionExecutionEngine.js";
 import { recalculateDomainHealth } from "./domainHealthEngine.js";
 
@@ -425,6 +429,8 @@ ${issue.rawInput}${qaBlock}`;
   }
 
   await prisma.$transaction(async (tx) => {
+    await deleteLinkedTasksForIssue(tx, issueId, userId);
+
     await tx.clarityOutcome.deleteMany({ where: { issueId } });
     await tx.clarityConstraint.deleteMany({ where: { issueId } });
     await tx.clarityStep.deleteMany({ where: { issueId } });
@@ -454,6 +460,23 @@ ${issue.rawInput}${qaBlock}`;
 
     for (let i = 0; i < plan.steps.length; i += 1) {
       const s = plan.steps[i]!;
+      const stepStatus = i === 0 ? ("CURRENT" as const) : ("LOCKED" as const);
+
+      const task = await createTaskForClarityStep(
+        tx,
+        userId,
+        {
+          title: s.title,
+          description: s.description,
+          whyThisNow: s.whyThisNow,
+          prepareNotes: s.prepareNotes,
+          completionCriteria: s.completionCriteria,
+        },
+        i,
+        stepStatus,
+        "SINGLE_ISSUE"
+      );
+
       await tx.clarityStep.create({
         data: {
           issueId,
@@ -462,10 +485,11 @@ ${issue.rawInput}${qaBlock}`;
           whyThisNow: s.whyThisNow,
           prepareNotes: s.prepareNotes,
           priorityOrder: i,
-          status: i === 0 ? "CURRENT" : "LOCKED",
+          status: stepStatus,
           difficulty: Math.min(10, Math.max(1, s.difficulty ?? 5)),
           expectedOutcome: s.expectedOutcome,
           completionCriteria: s.completionCriteria,
+          linkedTaskId: task.id,
         },
       });
     }
@@ -539,7 +563,7 @@ export async function completeCurrentStep(
     } else {
       await tx.clarityIssue.update({
         where: { id: issueId },
-        data: { status: "COMPLETED" },
+        data: { status: "COMPLETED", completedAt: new Date() },
       });
     }
   });
@@ -596,7 +620,7 @@ export async function skipCurrentStep(
     } else {
       await tx.clarityIssue.update({
         where: { id: issueId },
-        data: { status: "COMPLETED" },
+        data: { status: "COMPLETED", completedAt: new Date() },
       });
     }
   });

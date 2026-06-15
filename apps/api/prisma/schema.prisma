@@ -425,6 +425,7 @@ model ClarityIssue {
   clarifyingAnswers  Json                @default("[]")
   promotedMissionId  String?             @unique
   promotedMission    Mission?            @relation(fields: [promotedMissionId], references: [id], onDelete: SetNull)
+  completedAt        DateTime?
   outcome            ClarityOutcome?
   constraints        ClarityConstraint[]
   steps              ClarityStep[]

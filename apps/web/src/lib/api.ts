@@ -124,6 +124,8 @@ export const api = {
     if (params?.missionId) q.set("missionId", params.missionId);
     return fetchApi<Task[]>(`/tasks?${q}`);
   },
+  weekPlanTasks: () => fetchApi<ClarityTasksBundle[]>("/tasks/clarity"),
+  clarityTasks: () => fetchApi<ClarityTasksBundle[]>("/tasks/clarity"),
   focusTasks: () => fetchApi<FocusTasksResult>("/tasks/focus"),
   refreshFocusTasks: () =>
     fetchApi<FocusTasksResult>("/tasks/focus/refresh", { method: "POST" }),
@@ -503,6 +505,26 @@ export interface Task {
   reminderAt?: string | null;
 }
 
+export interface ClarityTasksBundle {
+  issueId: string;
+  issueTitle: string;
+  mode: ClarityIssueMode;
+  weekStartDate: string | null;
+  tasks: ClarityLinkedTask[];
+}
+
+/** @deprecated use ClarityTasksBundle */
+export type WeekPlanTasksBundle = ClarityTasksBundle;
+
+export interface ClarityLinkedTask extends Task {
+  stepId: string;
+  stepStatus: string;
+  isCurrent: boolean;
+}
+
+/** @deprecated use ClarityLinkedTask */
+export type WeekPlanTask = ClarityLinkedTask;
+
 export interface FocusFollowUp {
   taskId: string;
   question: string;
@@ -758,6 +780,7 @@ export interface ClarityIssueListItem {
   northStar: string | null;
   currentStepTitle: string | null;
   stepCount: number;
+  taskProgress?: { done: number; total: number; hasTasks: boolean };
   promotedMissionId: string | null;
   updatedAt: string;
   createdAt: string;

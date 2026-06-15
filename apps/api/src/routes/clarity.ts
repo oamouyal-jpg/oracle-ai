@@ -19,6 +19,11 @@ import {
 } from "../services/clarityEngine.js";
 import { createWeekPlan } from "../services/weekPlanEngine.js";
 import { runStateDetection } from "../services/stateDetectionEngine.js";
+import {
+  archiveStaleCompletedIssues,
+  deleteClarityIssueWithCleanup,
+} from "../services/clarityLifecycle.js";
+import { clarityTaskProgress } from "../services/clarityTaskSync.js";
 
 export const clarityRouter = Router();
 
@@ -29,6 +34,7 @@ function idParam(value: string | string[]): string {
 clarityRouter.get("/", asyncHandler(async (req, res) => {
   const userId = await resolveUserId(req);
   const status = req.query.status as string | undefined;
+  await archiveStaleCompletedIssues(userId);
   const issues = await prisma.clarityIssue.findMany({
     where: {
       userId,
@@ -37,25 +43,33 @@ clarityRouter.get("/", asyncHandler(async (req, res) => {
     orderBy: { updatedAt: "desc" },
     include: {
       outcome: { select: { northStarStatement: true } },
-      steps: { where: { status: "CURRENT" }, take: 1 },
+      steps: {
+        select: { status: true, linkedTaskId: true, title: true },
+        orderBy: { priorityOrder: "asc" },
+      },
       _count: { select: { steps: true } },
     },
   });
 
   res.json(
-    issues.map((i) => ({
+    issues.map((i) => {
+      const progress = clarityTaskProgress(i.steps);
+      const currentStep = i.steps.find((s) => s.status === "CURRENT");
+      return {
       id: i.id,
       title: i.title,
       mode: i.mode,
       status: i.status,
       aiSummary: i.aiSummary,
       northStar: i.outcome?.northStarStatement,
-      currentStepTitle: i.steps[0]?.title ?? null,
+      currentStepTitle: currentStep?.title ?? null,
       stepCount: i._count.steps,
+      taskProgress: progress,
       promotedMissionId: i.promotedMissionId,
       updatedAt: i.updatedAt,
       createdAt: i.createdAt,
-    }))
+    };
+    })
   );
 }));
 
@@ -113,6 +127,7 @@ clarityRouter.post("/", asyncHandler(async (req, res) => {
 clarityRouter.get("/:id", asyncHandler(async (req, res) => {
   const userId = await resolveUserId(req);
   const issueId = idParam(req.params.id);
+  await archiveStaleCompletedIssues(userId);
   const detail = formatIssueDetail(await loadIssueDetail(issueId, userId));
   if (!detail) throw new HttpError(404, "Issue not found");
   res.json(detail);
@@ -236,10 +251,12 @@ clarityRouter.patch("/:id", asyncHandler(async (req, res) => {
 clarityRouter.delete("/:id", asyncHandler(async (req, res) => {
   const userId = await resolveUserId(req);
   const issueId = idParam(req.params.id);
-  const existing = await prisma.clarityIssue.findFirst({
-    where: { id: issueId, userId },
-  });
-  if (!existing) throw new HttpError(404, "Issue not found");
-  await prisma.clarityIssue.delete({ where: { id: existing.id } });
+  try {
+    await deleteClarityIssueWithCleanup(issueId, userId);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Delete failed";
+    if (message === "Issue not found") throw new HttpError(404, message);
+    throw err;
+  }
   res.status(204).send();
 }));

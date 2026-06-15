@@ -10,6 +10,8 @@ import {
   replenishFocusQueue,
   submitFocusFollowUp,
 } from "../services/focusTasks.js";
+import { getClarityTasksForUser } from "../services/clarityTaskSync.js";
+import { completeCurrentStep, skipCurrentStep } from "../services/clarityEngine.js";
 
 const taskStatuses = [
   "PENDING",
@@ -46,6 +48,18 @@ tasksRouter.post("/focus/refresh", async (req, res) => {
 
   const result = await ensureFocusQueue(userId, locale);
   res.json(result);
+});
+
+tasksRouter.get("/clarity", async (req, res) => {
+  const userId = await resolveUserId(req);
+  const bundles = await getClarityTasksForUser(userId);
+  res.json(bundles);
+});
+
+tasksRouter.get("/week-plan", async (req, res) => {
+  const userId = await resolveUserId(req);
+  const bundles = await getClarityTasksForUser(userId);
+  res.json(bundles);
 });
 
 tasksRouter.get("/", async (req, res) => {
@@ -152,6 +166,49 @@ tasksRouter.patch("/:id", async (req, res) => {
   }
   if (body.status === "COMPLETED") {
     data.completedAt = new Date();
+  }
+
+  const linkedStep = await prisma.clarityStep.findFirst({
+    where: {
+      linkedTaskId: req.params.id,
+      issue: { userId },
+    },
+  });
+
+  if (
+    linkedStep &&
+    body.status === "COMPLETED" &&
+    linkedStep.status === "CURRENT"
+  ) {
+    try {
+      await completeCurrentStep(linkedStep.issueId, linkedStep.id, userId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Step sync failed";
+      if (message !== "Only the current step can be completed") throw err;
+    }
+    const task = await prisma.task.findUnique({
+      where: { id: req.params.id },
+      include: { mission: { select: { id: true, title: true } } },
+    });
+    return res.json({ task, replenished: null });
+  }
+
+  if (
+    linkedStep &&
+    body.status === "SKIPPED" &&
+    linkedStep.status === "CURRENT"
+  ) {
+    try {
+      await skipCurrentStep(linkedStep.issueId, linkedStep.id, userId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Step sync failed";
+      if (message !== "Only the current step can be skipped") throw err;
+    }
+    const task = await prisma.task.findUnique({
+      where: { id: req.params.id },
+      include: { mission: { select: { id: true, title: true } } },
+    });
+    return res.json({ task, replenished: null });
   }
 
   const result = await prisma.task.updateMany({

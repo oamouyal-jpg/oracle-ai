@@ -2,6 +2,16 @@ import { prisma } from "../lib/prisma.js";
 import { createChatCompletion } from "../lib/openai.js";
 import type { AppLocale } from "../lib/locale.js";
 import type { ClarityConstraintType } from "@prisma/client";
+import {
+  createTaskForClarityStep,
+  deleteLinkedTasksForIssue,
+} from "./clarityTaskSync.js";
+
+export {
+  backfillClarityIssueTasks as backfillWeekPlanTasks,
+  getClarityTasksForUser as getWeekPlanTasksForUser,
+  type ClarityTasksBundle as WeekPlanTasksBundle,
+} from "./clarityTaskSync.js";
 
 const WEEK_PLAN_SYSTEM = `You are Oracle Week Planner — a calm executive function coach for overwhelmed people (including students with ADHD).
 
@@ -100,15 +110,6 @@ function startOfWeek(d = new Date()) {
   x.setDate(x.getDate() + diff);
   x.setHours(0, 0, 0, 0);
   return x;
-}
-
-function morningReminderFor(due: Date): Date {
-  const r = new Date(due);
-  r.setHours(8, 0, 0, 0);
-  if (r.getTime() <= Date.now()) {
-    return new Date(Date.now() + 3600000);
-  }
-  return r;
 }
 
 function parseDueAt(raw: string, fallbackIndex: number): Date {
@@ -330,6 +331,8 @@ export async function synthesizeWeekPlan(
   }
 
   await prisma.$transaction(async (tx) => {
+    await deleteLinkedTasksForIssue(tx, issueId, userId);
+
     await tx.clarityOutcome.deleteMany({ where: { issueId } });
     await tx.clarityConstraint.deleteMany({ where: { issueId } });
     await tx.clarityStep.deleteMany({ where: { issueId } });
@@ -370,29 +373,25 @@ export async function synthesizeWeekPlan(
 
     for (let i = 0; i < plan.steps.length; i += 1) {
       const s = plan.steps[i]!;
+      const stepStatus = i === 0 ? ("CURRENT" as const) : ("LOCKED" as const);
       const dueAt = parseDueAt(s.dueAt, i);
-      const reminderAt = morningReminderFor(dueAt);
 
-      const task = await tx.task.create({
-        data: {
-          userId,
+      const task = await createTaskForClarityStep(
+        tx,
+        userId,
+        {
           title: s.title,
-          description: [
-            s.description,
-            s.whyThisNow ? `Why now: ${s.whyThisNow}` : "",
-            s.prepareNotes ? `Start: ${s.prepareNotes}` : "",
-            s.completionCriteria ? `Done when: ${s.completionCriteria}` : "",
-          ]
-            .filter(Boolean)
-            .join("\n\n"),
-          dueDate: dueAt,
-          scheduledAt: dueAt,
-          reminderAt,
-          priority: Math.min(99, 70 + (s.urgency ?? 5)),
-          aiGenerated: false,
-          status: i === 0 ? "IN_PROGRESS" : "PENDING",
+          description: s.description,
+          whyThisNow: s.whyThisNow,
+          prepareNotes: s.prepareNotes,
+          completionCriteria: s.completionCriteria,
+          dueAt,
+          urgency: s.urgency,
         },
-      });
+        i,
+        stepStatus,
+        "WEEK_PLAN"
+      );
 
       await tx.clarityStep.create({
         data: {
@@ -402,7 +401,7 @@ export async function synthesizeWeekPlan(
           whyThisNow: s.whyThisNow,
           prepareNotes: s.prepareNotes,
           priorityOrder: i,
-          status: i === 0 ? "CURRENT" : "LOCKED",
+          status: stepStatus,
           difficulty: Math.min(10, Math.max(1, s.difficulty ?? 5)),
           expectedOutcome: s.expectedOutcome,
           completionCriteria: s.completionCriteria,

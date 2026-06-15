@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Loader2,
   Target,
+  Trash2,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { CurrentStateCard } from "@/components/state/CurrentStateCard";
@@ -172,6 +173,23 @@ export default function ClarityIssuePage() {
     }
   };
 
+  const deleteIssue = async () => {
+    const confirmed = window.confirm(
+      `${t("clarity.deleteConfirm")}\n\n${t("clarity.deleteConfirmBody")}`
+    );
+    if (!confirmed) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.deleteClarityIssue(id);
+      router.push("/clarity");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("common.couldNotCreate"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center text-zinc-500">
@@ -274,10 +292,18 @@ export default function ClarityIssuePage() {
         ) : null}
       </header>
 
-      {isWeekPlan && issue.status === "ACTIVE" ? (
-        <GlassCard className="border-violet-400/20 bg-violet-950/15">
-          <p className="text-sm leading-relaxed text-violet-100/90">{t("clarity.weekTodayHint")}</p>
-          {(issue.overdueCount ?? 0) > 0 ? (
+      {issue.status === "ACTIVE" && issue.steps.length > 0 ? (
+        <GlassCard className="border-emerald-400/20 bg-emerald-950/10">
+          <p className="text-sm leading-relaxed text-emerald-100/90">
+            {isWeekPlan ? t("clarity.weekTodayHint") : t("clarity.clarityTasksHint")}
+          </p>
+          <Link
+            href="/tasks"
+            className="mt-3 inline-flex text-xs text-emerald-300 hover:text-emerald-100"
+          >
+            {t("clarity.openTasks")} →
+          </Link>
+          {isWeekPlan && (issue.overdueCount ?? 0) > 0 ? (
             <p className="mt-2 text-xs text-amber-300/90">
               {t("clarity.weekOverdue").replace("{count}", String(issue.overdueCount))}
             </p>
@@ -422,6 +448,16 @@ export default function ClarityIssuePage() {
         <GlassCard className="border-emerald-500/25 text-center">
           <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-400/80" />
           <p className="mt-2 text-sm text-emerald-100/90">{t("clarity.statusCompleted")}</p>
+          <p className="mt-2 text-xs text-zinc-500">{t("clarity.autoArchiveHint")}</p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void deleteIssue()}
+            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-rose-500/30 px-4 py-2 text-xs text-rose-200 hover:bg-rose-500/10 disabled:opacity-40"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {t("clarity.deleteIssue")}
+          </button>
         </GlassCard>
       ) : null}
 
@@ -611,6 +647,15 @@ export default function ClarityIssuePage() {
           className="rounded-full border border-white/10 px-4 py-2 text-xs text-zinc-500"
         >
           {t("clarity.pause")}
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void deleteIssue()}
+          className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/30 px-4 py-2 text-xs text-rose-300/90 hover:bg-rose-500/10 disabled:opacity-40"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          {t("clarity.deleteIssue")}
         </button>
       </div>
     </div>
