@@ -193,9 +193,16 @@ export default function ClarityIssuePage() {
   const handleApproveAgent = async () => {
     if (!agentAction) return;
     setBusy(true);
+    setError(null);
     try {
       const approved = await api.approveAgentAction(agentAction.id);
       setAgentAction(approved);
+      const refreshed = await load();
+      if (refreshed?.currentAgentAction) {
+        setAgentAction(refreshed.currentAgentAction);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("common.couldNotCreate"));
     } finally {
       setBusy(false);
     }

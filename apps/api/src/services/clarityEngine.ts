@@ -3,7 +3,7 @@ import { createChatCompletion } from "../lib/openai.js";
 import { asStringArray } from "../lib/arrays.js";
 import type { AppLocale } from "../lib/locale.js";
 import type { ClarityConstraintType } from "@prisma/client";
-import { queueActionsForCurrentStep, formatAgentAction } from "./actionExecutionEngine.js";
+import { queueActionsForCurrentStep, formatAgentAction, hasDraftArtifacts } from "./actionExecutionEngine.js";
 
 const CLARITY_SYSTEM = `You are Oracle Clarity — a calm, direct life operator. You help overwhelmed people turn messy situations into one clear desired outcome and a small sequence of actions.
 
@@ -838,10 +838,36 @@ export function formatIssueDetail(issue: Awaited<ReturnType<typeof loadIssueDeta
     agentActions: (issue.agentActions ?? []).map(formatAgentAction),
     currentAgentAction: (() => {
       const currentStepId = issue.steps.find((s) => s.status === "CURRENT")?.id;
-      const raw = (issue.agentActions ?? []).find(
-        (a) => a.actionStepId === currentStepId && a.status !== "CANCELLED"
-      );
-      return raw ? formatAgentAction(raw) : null;
+      const active = (issue.agentActions ?? []).filter((a) => a.status !== "CANCELLED");
+
+      const statusRank: Record<string, number> = {
+        COMPLETED: 0,
+        EXECUTING: 1,
+        APPROVED: 2,
+        AWAITING_APPROVAL: 3,
+        PENDING: 4,
+        FAILED: 5,
+      };
+
+      const forStep = active
+        .filter((a) => a.actionStepId === currentStepId)
+        .sort(
+          (a, b) =>
+            (statusRank[a.status] ?? 9) - (statusRank[b.status] ?? 9) ||
+            b.updatedAt.getTime() - a.updatedAt.getTime()
+        );
+      if (forStep[0]) return formatAgentAction(forStep[0]);
+
+      const withDraft = active
+        .filter((a) => a.status === "COMPLETED")
+        .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+        .find((a) =>
+          hasDraftArtifacts(
+            a.payload as Record<string, unknown>,
+            (a.executionResult ?? {}) as Record<string, unknown>
+          )
+        );
+      return withDraft ? formatAgentAction(withDraft) : null;
     })(),
     stateSnapshots: undefined,
   };

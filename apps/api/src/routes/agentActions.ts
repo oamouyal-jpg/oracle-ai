@@ -53,9 +53,10 @@ agentActionsRouter.post("/detect", asyncHandler(async (req, res) => {
 
 agentActionsRouter.post("/:id/approve", asyncHandler(async (req, res) => {
   const userId = await resolveUserId(req);
+  const locale = requestLocale(req);
   const { overrideState } = z.object({ overrideState: z.boolean().optional() }).parse(req.body ?? {});
   try {
-    res.json(await approveAgentAction(idParam(req.params.id), userId, overrideState ?? false));
+    res.json(await approveAgentAction(idParam(req.params.id), userId, overrideState ?? false, locale));
   } catch (e) {
     throw new HttpError(400, e instanceof Error ? e.message : "Approve failed");
   }
@@ -63,9 +64,10 @@ agentActionsRouter.post("/:id/approve", asyncHandler(async (req, res) => {
 
 agentActionsRouter.post("/:id/execute", asyncHandler(async (req, res) => {
   const userId = await resolveUserId(req);
+  const locale = requestLocale(req);
   const { forceSend } = z.object({ forceSend: z.boolean().optional() }).parse(req.body ?? {});
   try {
-    res.json(await executeAgentAction(idParam(req.params.id), userId, forceSend ?? false));
+    res.json(await executeAgentAction(idParam(req.params.id), userId, forceSend ?? false, locale));
   } catch (e) {
     throw new HttpError(400, e instanceof Error ? e.message : "Execute failed");
   }

@@ -33,6 +33,118 @@ export function formatAgentAction(row: ActionExecutionQueue) {
   };
 }
 
+function localeHint(locale: AppLocale): string {
+  if (locale === "he") return "Write the draft in Hebrew.";
+  if (locale === "fr") return "Write the draft in French.";
+  return "Write the draft in English.";
+}
+
+function shouldAutoExecuteOnApprove(actionType: string): boolean {
+  return [
+    "DRAFT_EMAIL",
+    "DRAFT_MESSAGE",
+    "GENERATE_REPORT",
+    "GENERATE_PDF",
+    "HYBRID_PREP",
+    "RESEARCH_PROVIDERS",
+    "PREPARE_COMPARISON",
+    "CREATE_CONTACT_LIST",
+    "BOOK_APPOINTMENT",
+    "CREATE_CALENDAR_EVENT",
+    "SCHEDULE_REMINDER",
+  ].includes(actionType);
+}
+
+export function hasDraftArtifacts(
+  payload: Record<string, unknown>,
+  executionResult: Record<string, unknown>
+): boolean {
+  const artifacts = (executionResult.artifacts ?? {}) as Record<string, unknown>;
+  return Boolean(
+    artifacts.body ||
+      artifacts.preview ||
+      artifacts.subject ||
+      payload.draftBody ||
+      payload.body
+  );
+}
+
+async function buildDraftPayload(
+  row: ActionExecutionQueue,
+  userId: string,
+  locale: AppLocale
+): Promise<Record<string, unknown>> {
+  const payload = (row.payload ?? {}) as Record<string, unknown>;
+  if (payload.aiDraftGenerated === true) return payload;
+
+  const draftTypes = [
+    "DRAFT_EMAIL",
+    "SEND_EMAIL",
+    "DRAFT_MESSAGE",
+    "GENERATE_REPORT",
+    "GENERATE_PDF",
+    "HYBRID_PREP",
+  ];
+  if (!draftTypes.includes(row.actionType)) return payload;
+
+  const issue = row.issueId
+    ? await prisma.clarityIssue.findFirst({
+        where: { id: row.issueId, userId },
+        include: { outcome: true },
+      })
+    : null;
+  const step = row.actionStepId
+    ? await prisma.clarityStep.findFirst({ where: { id: row.actionStepId } })
+    : null;
+
+  const prompt = `Write a complete, ready-to-send draft for the user.
+Return valid json: { "subject": "email subject if relevant", "body": "full draft text" }
+
+Action title: ${row.actionTitle}
+What Oracle offered: ${row.actionDescription}
+Issue: ${issue?.title ?? "n/a"}
+North Star: ${issue?.outcome?.northStarStatement ?? "n/a"}
+Background: ${issue?.rawInput?.slice(0, 900) ?? "n/a"}
+Current step: ${step?.title ?? "n/a"}
+Step notes: ${step?.description ?? step?.prepareNotes ?? "n/a"}
+
+Write a polished draft the user can copy — not a placeholder. ${localeHint(locale)}`;
+
+  const ai = await createChatCompletion({
+    model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+    temperature: 0.55,
+    response_format: { type: "json_object" },
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  if (!ai.ok) return payload;
+
+  const text = ai.completion.choices[0]?.message?.content ?? "";
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end === -1) return payload;
+
+  try {
+    const parsed = JSON.parse(text.slice(start, end + 1)) as {
+      subject?: string;
+      body?: string;
+    };
+    const body = parsed.body?.trim();
+    const subject = parsed.subject?.trim();
+    if (!body && !subject) return payload;
+    return {
+      ...payload,
+      draftSubject: subject ?? payload.draftSubject,
+      draftBody: body ?? payload.draftBody,
+      subject: subject ?? payload.subject,
+      body: body ?? payload.body,
+      aiDraftGenerated: true,
+    };
+  } catch {
+    return payload;
+  }
+}
+
 async function getLatestStateRisk(issueId: string, userId: string) {
   const snap = await prisma.stateSnapshot.findFirst({
     where: { userId, issueId },
@@ -158,7 +270,12 @@ export async function listAgentActions(
   return rows.map(formatAgentAction);
 }
 
-export async function approveAgentAction(id: string, userId: string, overrideState = false) {
+export async function approveAgentAction(
+  id: string,
+  userId: string,
+  overrideState = false,
+  locale: AppLocale = "en"
+) {
   const row = await prisma.actionExecutionQueue.findFirst({
     where: { id, userId },
   });
@@ -167,18 +284,30 @@ export async function approveAgentAction(id: string, userId: string, overrideSta
     throw new Error("Action cannot be approved in current status");
   }
 
-  const updated = await prisma.actionExecutionQueue.update({
+  await prisma.actionExecutionQueue.update({
     where: { id },
     data: {
       status: "APPROVED",
       stateOverride: overrideState,
     },
   });
-  return formatAgentAction(updated);
+
+  if (shouldAutoExecuteOnApprove(row.actionType)) {
+    const result = await executeAgentAction(id, userId, overrideState, locale);
+    return result.action;
+  }
+
+  const updated = await prisma.actionExecutionQueue.findFirst({ where: { id, userId } });
+  return formatAgentAction(updated!);
 }
 
-export async function executeAgentAction(id: string, userId: string, forceSend = false) {
-  const row = await prisma.actionExecutionQueue.findFirst({
+export async function executeAgentAction(
+  id: string,
+  userId: string,
+  forceSend = false,
+  locale: AppLocale = "en"
+) {
+  let row = await prisma.actionExecutionQueue.findFirst({
     where: { id, userId },
   });
   if (!row) throw new Error("Action not found");
@@ -203,21 +332,15 @@ export async function executeAgentAction(id: string, userId: string, forceSend =
   }
 
   if (stateBlocked && comm && row.actionType === "SEND_EMAIL" && !forceSend) {
-    const draft = await prisma.actionExecutionQueue.update({
+    await prisma.actionExecutionQueue.update({
       where: { id },
       data: {
         actionType: "DRAFT_EMAIL",
-        status: "AWAITING_APPROVAL",
         stateBlocked: true,
         actionDescription: `${row.actionDescription} Blocked by state check — draft saved only.`,
       },
     });
-    return {
-      action: formatAgentAction(draft),
-      blocked: true,
-      stateMessage:
-        "Current state is high-risk for sending. Draft saved — reassess in 12–24 hours. You may override explicitly.",
-    };
+    row = (await prisma.actionExecutionQueue.findFirst({ where: { id, userId } }))!;
   }
 
   await prisma.actionExecutionQueue.update({
@@ -225,12 +348,21 @@ export async function executeAgentAction(id: string, userId: string, forceSend =
     data: { status: "EXECUTING" },
   });
 
-  const provider = getProvider(row.integrationTool);
+  const enrichedPayload = await buildDraftPayload(row, userId, locale);
+  let execRow = row;
+  if (enrichedPayload.aiDraftGenerated) {
+    execRow = await prisma.actionExecutionQueue.update({
+      where: { id },
+      data: { payload: enrichedPayload as Prisma.InputJsonValue },
+    });
+  }
+
+  const provider = getProvider(execRow.integrationTool);
   const output = await provider.execute({
-    actionType: row.actionType,
-    title: row.actionTitle,
-    description: row.actionDescription,
-    payload: row.payload as Record<string, unknown>,
+    actionType: execRow.actionType,
+    title: execRow.actionTitle,
+    description: execRow.actionDescription,
+    payload: execRow.payload as Record<string, unknown>,
     userId,
   });
 
@@ -245,7 +377,7 @@ export async function executeAgentAction(id: string, userId: string, forceSend =
       } as Prisma.InputJsonValue,
       executedAt: new Date(),
       payload: {
-        ...(row.payload as object),
+        ...(execRow.payload as object),
         ...output.artifacts,
       } as Prisma.InputJsonValue,
     },
