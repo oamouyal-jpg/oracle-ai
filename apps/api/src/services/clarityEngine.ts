@@ -4,6 +4,7 @@ import { asStringArray } from "../lib/arrays.js";
 import type { AppLocale } from "../lib/locale.js";
 import type { ClarityConstraintType } from "@prisma/client";
 import { queueActionsForCurrentStep, formatAgentAction, hasDraftArtifacts } from "./actionExecutionEngine.js";
+import { recalculateDomainHealth } from "./domainHealthEngine.js";
 
 const CLARITY_SYSTEM = `You are Oracle Clarity — a calm, direct life operator. You help overwhelmed people turn messy situations into one clear desired outcome and a small sequence of actions.
 
@@ -545,6 +546,10 @@ export async function completeCurrentStep(
 
   await queueActionsForCurrentStep(issueId, userId, "en").catch((err) => {
     console.warn("[Oracle] Agent action queue skipped:", err instanceof Error ? err.message : err);
+  });
+
+  await recalculateDomainHealth(userId).catch((err) => {
+    console.warn("[Oracle] Domain health recalculation skipped:", err instanceof Error ? err.message : err);
   });
 }
 

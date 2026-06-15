@@ -8,6 +8,7 @@ import {
   rememberInsight,
 } from "../lib/operatorLearning.js";
 import { recalculateMissionMomentums } from "./alignmentEngine.js";
+import { recalculateDomainHealth } from "./domainHealthEngine.js";
 import {
   apiStr,
   mockFollowUpAcknowledgment,
@@ -315,7 +316,10 @@ Rules:
     await rememberInsight(userId, insight, "pattern", 70).catch(() => {});
   }
 
-  if (task.missionId) await recalculateMissionMomentums(userId);
+  if (task.missionId) {
+    await recalculateMissionMomentums(userId);
+    await recalculateDomainHealth(userId);
+  }
 
   const updated = await prisma.task.findUnique({
     where: { id: taskId },

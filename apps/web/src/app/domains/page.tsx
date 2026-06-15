@@ -50,7 +50,9 @@ export default function DomainsPage() {
                   <span className="text-2xl">{d.icon}</span>
                   <h2 className="text-lg font-medium text-zinc-100 mt-2">{d.name}</h2>
                   <p className="text-sm text-zinc-500 mt-1">
-                    {d.currentState ?? t("common.dash")}
+                    {d.currentState
+                      ? t(`domains.state.${d.currentState}`)
+                      : t("domains.noActiveMissions")}
                   </p>
                 </div>
                 <ProgressRing value={d.progress} size={56} color={d.color} />

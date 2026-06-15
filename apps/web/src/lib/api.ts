@@ -657,7 +657,7 @@ export interface DashboardData {
       priority: number;
       domain?: string;
     }[];
-    domainHealth: { name: string; progress: number; color: string }[];
+    domainHealth: { name: string; slug: string; progress: number; color: string }[];
   };
 }
 

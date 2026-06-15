@@ -167,7 +167,7 @@ export default function CommandCenter() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="grid grid-cols-2 md:grid-cols-5 gap-4"
+        className="grid grid-cols-2 md:grid-cols-4 gap-4"
       >
         <StatCard
           href="/alignment"
@@ -177,7 +177,6 @@ export default function CommandCenter() {
         <StatCard href="/missions" label={t("dashboard.activeMissions")} value={stats.activeMissions} />
         <StatCard href="/tasks" label={t("dashboard.pendingTasks")} value={stats.pendingTasks} />
         <StatCard href="/tasks" label={t("dashboard.doneToday")} value={stats.completedToday} />
-        <StatCard href="/life-map" label={t("dashboard.momentum")} value={`${stats.momentum}%`} />
       </motion.div>
 
       <QuickCheckIn onSubmitted={() => setRefreshKey((k) => k + 1)} />
@@ -341,11 +340,7 @@ export default function CommandCenter() {
             >
               <ProgressRing value={d.progress} size={56} color={d.color} />
               <span className="text-xs text-zinc-500">
-                {localizeDomainName(
-                  "slug" in d ? (d.slug as string) : undefined,
-                  d.name,
-                  locale
-                )}
+                {localizeDomainName(d.slug, d.name, locale)}
               </span>
             </Link>
           ))}

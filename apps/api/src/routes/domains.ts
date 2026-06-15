@@ -4,11 +4,13 @@ import { prisma } from "../lib/prisma.js";
 import { resolveUserId } from "../lib/user.js";
 import { requestLocale } from "../lib/requestLocale.js";
 import { localizeDomains } from "../lib/contentLocale.js";
+import { recalculateDomainHealth } from "../services/domainHealthEngine.js";
 
 export const domainsRouter = Router();
 
 domainsRouter.get("/", async (req, res) => {
   const userId = await resolveUserId(req);
+  await recalculateDomainHealth(userId);
   const domains = await prisma.domain.findMany({
     where: { userId },
     orderBy: { priority: "desc" },

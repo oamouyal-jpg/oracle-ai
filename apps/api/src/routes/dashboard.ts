@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { asStringArray } from "../lib/arrays.js";
 import { resolveUserId } from "../lib/user.js";
 import { getAlignmentDashboard } from "../services/alignmentEngine.js";
+import { recalculateDomainHealth } from "../services/domainHealthEngine.js";
 import { requestLocale } from "../lib/requestLocale.js";
 import { localizeDomain, localizeDomainName } from "../lib/contentLocale.js";
 
@@ -12,6 +13,10 @@ export const dashboardRouter = Router();
 dashboardRouter.get("/", asyncHandler(async (req, res) => {
   try {
     const userId = await resolveUserId(req);
+
+    await recalculateDomainHealth(userId).catch((e) => {
+      console.error("Domain health recalculation error:", e);
+    });
 
     let alignmentData = null;
     try {

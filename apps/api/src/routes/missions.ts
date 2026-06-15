@@ -14,6 +14,7 @@ import {
   processTradingDailyLog,
   generateWeeklyTradingReport,
 } from "../services/missionTracker.js";
+import { recalculateDomainHealth } from "../services/domainHealthEngine.js";
 
 export const missionsRouter = Router();
 
@@ -124,6 +125,7 @@ missionsRouter.post("/", asyncHandler(async (req, res) => {
       },
       include: { domain: true },
     });
+    await recalculateDomainHealth(userId);
     res.status(201).json(formatMission(mission as Record<string, unknown>));
 }));
 
@@ -176,6 +178,7 @@ missionsRouter.patch("/:id", async (req, res) => {
     data: body,
   });
   if (result.count === 0) return res.status(404).json({ error: "Not found" });
+  await recalculateDomainHealth(userId);
   const mission = await prisma.mission.findUnique({
     where: { id: req.params.id },
     include: { domain: true },
@@ -217,6 +220,8 @@ missionsRouter.post("/:id/updates", async (req, res) => {
       data: { progress: analysis.suggestedProgress },
     });
   }
+
+  await recalculateDomainHealth(userId);
 
   res.status(201).json({ update, analysis });
 });

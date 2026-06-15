@@ -32,8 +32,7 @@ export default function LifeMapPage() {
         <p className="text-zinc-500 mt-1">{t("lifeMap.vizSubtitle")}</p>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Metric label={t("lifeMap.momentum")} value={`${stats.momentum}%`} />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Metric label={t("lifeMap.missions")} value={stats.activeMissions} />
         <Metric label={t("lifeMap.tasks")} value={stats.pendingTasks} />
         <Metric label={t("lifeMap.doneToday")} value={stats.completedToday} />

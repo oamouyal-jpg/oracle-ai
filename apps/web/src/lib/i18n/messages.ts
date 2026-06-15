@@ -475,6 +475,12 @@ const en = {
     pageTitle: "Life Domains",
     pageSubtitle: "Main areas of your life operating system",
     goals: "Goals",
+    noActiveMissions: "No active missions — link one to track health",
+    state: {
+      on_track: "On track",
+      active: "Active development",
+      needs_attention: "Needs attention",
+    },
   },
   lifeMap: {
     title: "Life Map",
@@ -1071,6 +1077,12 @@ const he: Messages = {
     pageTitle: "תחומי חיים",
     pageSubtitle: "אזורי החיים במערכת ההפעלה שלך",
     goals: "מטרות",
+    noActiveMissions: "אין משימות פעילות — קשר משימה כדי לעקוב אחרי בריאות התחום",
+    state: {
+      on_track: "במסלול",
+      active: "בפיתוח פעיל",
+      needs_attention: "דורש תשומת לב",
+    },
   },
   lifeMap: {
     title: "מפת חיים",
@@ -1669,6 +1681,12 @@ const fr: Messages = {
     pageTitle: "Domaines de vie",
     pageSubtitle: "Les grands domaines de votre système de vie",
     goals: "Objectifs",
+    noActiveMissions: "Aucune mission active — associez-en une pour suivre la santé du domaine",
+    state: {
+      on_track: "Sur la bonne voie",
+      active: "Développement actif",
+      needs_attention: "Nécessite attention",
+    },
   },
   lifeMap: {
     title: "Carte de vie",

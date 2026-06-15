@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { resolveUserId } from "../lib/user.js";
 import { recalculateMissionMomentums } from "../services/alignmentEngine.js";
+import { recalculateDomainHealth } from "../services/domainHealthEngine.js";
 import { requestLocale } from "../lib/requestLocale.js";
 import {
   ensureFocusQueue,
@@ -164,7 +165,10 @@ tasksRouter.patch("/:id", async (req, res) => {
     include: { mission: { select: { id: true, title: true } } },
   });
 
-  if (task?.missionId) await recalculateMissionMomentums(userId);
+  if (task?.missionId) {
+    await recalculateMissionMomentums(userId);
+    await recalculateDomainHealth(userId);
+  }
 
   const locale = requestLocale(req);
   let replenished = null;
