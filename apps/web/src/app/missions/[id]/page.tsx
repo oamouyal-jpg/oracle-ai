@@ -360,13 +360,9 @@ export default function MissionDetailPage() {
           {mission.nextActions && mission.nextActions.length > 0 && (
             <GlassCard>
               <h3 className="text-xs uppercase text-cyan-400 mb-2">
-                {t("missionDetail.nextActions")}
+                {t("clarity.currentMove")}
               </h3>
-              <ul className="text-sm text-zinc-300 space-y-1">
-                {mission.nextActions.map((a) => (
-                  <li key={a}>→ {a}</li>
-                ))}
-              </ul>
+              <p className="text-sm text-zinc-300">→ {mission.nextActions[0]}</p>
             </GlassCard>
           )}
 

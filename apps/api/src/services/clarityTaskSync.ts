@@ -185,7 +185,12 @@ export async function getClarityTasksForUser(userId: string): Promise<ClarityTas
       mode: issue.mode,
       weekStartDate: issue.weekStartDate?.toISOString() ?? null,
       tasks: issue.steps
-        .filter((s) => s.linkedTaskId && taskById.has(s.linkedTaskId))
+        .filter(
+          (s) =>
+            s.status === "CURRENT" &&
+            s.linkedTaskId &&
+            taskById.has(s.linkedTaskId)
+        )
         .map((s) => {
           const task = taskById.get(s.linkedTaskId!)!;
           return {
@@ -199,13 +204,13 @@ export async function getClarityTasksForUser(userId: string): Promise<ClarityTas
             reminderAt: task.reminderAt?.toISOString() ?? null,
             stepId: s.id,
             stepStatus: s.status,
-            isCurrent: s.status === "CURRENT",
+            isCurrent: true,
           };
         }),
     });
   }
 
-  return bundles;
+  return bundles.filter((b) => b.tasks.length > 0);
 }
 
 export function clarityTaskProgress(steps: { status: string; linkedTaskId: string | null }[]) {

@@ -463,7 +463,7 @@ export const he = {
     allTasks: "כל הפעולות",
     weekPlanTitle: "תוכנית השבוע",
     fromClarity: "מבהירות",
-    fromClaritySubtitle: "צעדים מתוכניות Clarity פעילות — מסונכרן עם לעשות.",
+    fromClaritySubtitle: "רק הצעד הנוכחי מכל תוכנית Clarity פעילה — מה שהושלם נעלם.",
     clarityBadge: "בהירות",
     openInClarity: "פתח בבהירות",
     weekPlanBadge: "תוכנית שבוע",

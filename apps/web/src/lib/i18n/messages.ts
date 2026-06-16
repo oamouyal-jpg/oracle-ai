@@ -477,7 +477,7 @@ const en = {
     allTasks: "All tasks",
     weekPlanTitle: "This week's plan",
     fromClarity: "From Clarity",
-    fromClaritySubtitle: "Steps from your active Clarity plans — synced with Tasks.",
+    fromClaritySubtitle: "Only the current step from each active Clarity plan — done steps disappear.",
     clarityBadge: "Clarity",
     openInClarity: "Open in Clarity",
     weekPlanBadge: "Week plan",

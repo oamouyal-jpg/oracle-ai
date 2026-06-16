@@ -15,7 +15,7 @@ import {
   mockFollowUpQuestion,
 } from "../lib/apiLocale.js";
 
-export const FOCUS_QUEUE_SIZE = 3;
+export const FOCUS_QUEUE_SIZE = 1;
 
 const ACTIVE_FOCUS_STATUSES = [
   "PENDING",

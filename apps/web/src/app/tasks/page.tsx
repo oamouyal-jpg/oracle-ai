@@ -593,12 +593,12 @@ export default function TasksPage() {
               </div>
               <GlassCard glow>
                 <ul className="divide-y divide-white/5">
-                  {plan.tasks.map((task, i) =>
-                    renderTaskRow(task, i + 1, false, {
+                  {plan.tasks.map((task) =>
+                    renderTaskRow(task, undefined, false, {
                       issueId: plan.issueId,
                       mode: plan.mode,
-                      isCurrent: task.isCurrent,
-                      locked: task.stepStatus === "LOCKED",
+                      isCurrent: true,
+                      locked: false,
                     })
                   )}
                 </ul>

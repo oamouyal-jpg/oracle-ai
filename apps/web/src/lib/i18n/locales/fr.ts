@@ -465,7 +465,7 @@ export const fr = {
     allTasks: "Toutes les tâches",
     weekPlanTitle: "Plan de la semaine",
     fromClarity: "Depuis Clarté",
-    fromClaritySubtitle: "Étapes de vos plans Clarté actifs — synchronisées avec Tâches.",
+    fromClaritySubtitle: "Uniquement l'étape en cours de chaque plan Clarté actif — les étapes terminées disparaissent.",
     clarityBadge: "Clarté",
     openInClarity: "Ouvrir dans Clarté",
     weekPlanBadge: "Plan hebdo",
