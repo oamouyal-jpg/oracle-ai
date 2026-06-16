@@ -27,7 +27,6 @@ export default function TasksPage() {
   const { t, locale } = useLocale();
   const [menu, setMenu] = useState<FocusTasksResult | null>(null);
   const [clarityPlans, setClarityPlans] = useState<ClarityTasksBundle[]>([]);
-  const [otherTasks, setOtherTasks] = useState<Task[]>([]);
   const [recentClosed, setRecentClosed] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -81,19 +80,8 @@ export default function TasksPage() {
   ) => {
     setMenu(result);
     setClarityPlans(plans);
-    const activeIds = new Set(result.tasks.map((task) => task.id));
     const closedIds = new Set(result.recentFollowUps.map((f) => f.taskId));
-    const clarityTaskIds = new Set(plans.flatMap((plan) => plan.tasks.map((task) => task.id)));
     setRecentClosed(all.filter((task) => closedIds.has(task.id)));
-    setOtherTasks(
-      all.filter(
-        (task) =>
-          !activeIds.has(task.id) &&
-          !closedIds.has(task.id) &&
-          !clarityTaskIds.has(task.id) &&
-          !task.aiGenerated
-      )
-    );
   };
 
   const load = async () => {
@@ -646,17 +634,6 @@ export default function TasksPage() {
           <GlassCard>
             <ul className="divide-y divide-white/5">
               {recentClosed.map((task) => renderTaskRow(task, undefined, true))}
-            </ul>
-          </GlassCard>
-        </section>
-      )}
-
-      {otherTasks.length > 0 && (
-        <section>
-          <h2 className="text-lg font-medium text-zinc-100 mb-3">{t("tasks.allTasks")}</h2>
-          <GlassCard>
-            <ul className="divide-y divide-white/5">
-              {otherTasks.map((task) => renderTaskRow(task))}
             </ul>
           </GlassCard>
         </section>

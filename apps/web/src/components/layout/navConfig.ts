@@ -21,7 +21,7 @@ export type NavItem = {
   key:
     | "nav.commandCenter"
     | "nav.clarity"
-    | "nav.stateCheck"
+    | "nav.innerOs"
     | "nav.agentActions"
     | "nav.lifeMap"
     | "nav.domains"
@@ -39,7 +39,7 @@ export type NavItem = {
 export const navItems: NavItem[] = [
   { href: "/", key: "nav.commandCenter", icon: LayoutDashboard },
   { href: "/clarity", key: "nav.clarity", icon: Sparkles },
-  { href: "/state-check", key: "nav.stateCheck", icon: Brain },
+  { href: "/inner-os", key: "nav.innerOs", icon: Brain },
   { href: "/agent-actions", key: "nav.agentActions", icon: Bot },
   { href: "/life-map", key: "nav.lifeMap", icon: Map },
   { href: "/domains", key: "nav.domains", icon: Layers },

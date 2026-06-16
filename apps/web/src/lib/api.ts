@@ -289,6 +289,32 @@ export const api = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  innerCheckIn: (rawInput: string) =>
+    fetchApi<InnerSessionResult>("/inner-os/check-in", {
+      method: "POST",
+      body: JSON.stringify({ rawInput }),
+    }),
+  innerReflect: (sessionId: string, answers: string[]) =>
+    fetchApi<InnerSessionResult>(`/inner-os/sessions/${sessionId}/reflect`, {
+      method: "POST",
+      body: JSON.stringify({ answers }),
+    }),
+  innerActionDone: (sessionId: string, done: boolean) =>
+    fetchApi<InnerSessionResult>(`/inner-os/sessions/${sessionId}/action`, {
+      method: "PATCH",
+      body: JSON.stringify({ done }),
+    }),
+  innerSessions: (limit?: number) =>
+    fetchApi<InnerSession[]>(`/inner-os/sessions${limit ? `?limit=${limit}` : ""}`),
+  innerGrowth: () => fetchApi<InnerGrowth>("/inner-os/growth"),
+  innerValues: () => fetchApi<StableValue[]>("/inner-os/values"),
+  createInnerValue: (data: { valueName: string; description?: string; examples?: string[] }) =>
+    fetchApi<StableValue>("/inner-os/values", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  deleteInnerValue: (id: string) =>
+    fetchApi<void>(`/inner-os/values/${id}`, { method: "DELETE" }),
   createJournal: (data: { content: string; mood?: number; tags?: string[]; runStateDetection?: boolean }) =>
     fetchApi<{ entry: JournalEntry; stateDetection: StateDetectionResult | null }>("/journal", {
       method: "POST",
@@ -943,6 +969,89 @@ export interface StateDetectionResult {
   pattern: UserPattern | null;
   stableValues: StableValue[];
   source: "openai" | "offline";
+}
+
+export type InnerDriver =
+  | "CALM_CENTERED"
+  | "FEAR"
+  | "ANXIETY"
+  | "SHAME"
+  | "LONELINESS"
+  | "APPROVAL"
+  | "ADDICTION"
+  | "AVOIDANCE"
+  | "ANGER"
+  | "JEALOUSY"
+  | "CONTROL"
+  | "DEPENDENCY"
+  | "IMPULSIVITY"
+  | "CONDITIONING";
+
+export type InnerPatternCategory =
+  | "GROUNDED"
+  | "FEAR_BASED"
+  | "AVOIDANCE"
+  | "RELATIONSHIP"
+  | "ADDICTION"
+  | "SELF_SABOTAGE"
+  | "CONTROL";
+
+export interface InnerSession {
+  id: string;
+  rawInput: string;
+  primaryDriver: InnerDriver;
+  primaryDriverLabel: string;
+  secondaryDriver: InnerDriver | null;
+  secondaryDriverLabel: string | null;
+  patternCategory: InnerPatternCategory;
+  patternCategoryLabel: string;
+  patternName: string | null;
+  possibleRootCause: string | null;
+  triggers: string[];
+  feelings: string[];
+  facts: string[];
+  reflectionQuestions: string[];
+  reflectionAnswers: string[];
+  reflectionInsight: string | null;
+  currentStateTraits: string[];
+  healthyStateTraits: string[];
+  comparisonSummary: string | null;
+  freedomAction: string | null;
+  freedomActionDone: boolean;
+  oracleReflection: string | null;
+  professionalSupportSuggested: boolean;
+  intensity: number;
+  scores: {
+    emotionalRegulation: number;
+    selfAwareness: number;
+    healthyDecision: number;
+    freedom: number;
+  };
+  createdAt: string;
+}
+
+export interface InnerSessionResult {
+  session: InnerSession;
+  source: "openai" | "offline";
+}
+
+export interface InnerGrowthScore {
+  value: number;
+  trend: number;
+}
+
+export interface InnerGrowth {
+  totalSessions: number;
+  topDrivers: { driver: InnerDriver; label: string; count: number }[];
+  repeatingPatterns: { category: InnerPatternCategory; label: string; count: number }[];
+  scores: {
+    emotionalRegulation: InnerGrowthScore;
+    selfAwareness: InnerGrowthScore;
+    healthyDecision: InnerGrowthScore;
+    freedom: InnerGrowthScore;
+  };
+  consistencyScore: number;
+  trends: string[];
 }
 
 export interface JournalEntryWithState extends JournalEntry {

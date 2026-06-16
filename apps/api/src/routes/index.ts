@@ -13,6 +13,7 @@ import { notificationsRouter } from "./notifications.js";
 import { authRouter } from "./auth.js";
 import { clarityRouter } from "./clarity.js";
 import { stateCheckRouter } from "./stateCheck.js";
+import { innerOsRouter } from "./innerOs.js";
 import { agentActionsRouter } from "./agentActions.js";
 import { dailyOracleRouter } from "./dailyOracle.js";
 
@@ -22,6 +23,7 @@ apiRouter.use("/auth", authRouter);
 
 apiRouter.use("/clarity", clarityRouter);
 apiRouter.use("/state-check", stateCheckRouter);
+apiRouter.use("/inner-os", innerOsRouter);
 apiRouter.use("/agent-actions", agentActionsRouter);
 apiRouter.use("/daily-oracle", dailyOracleRouter);
 

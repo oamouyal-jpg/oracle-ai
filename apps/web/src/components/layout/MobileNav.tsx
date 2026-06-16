@@ -109,8 +109,8 @@ export function MobileNav({ menuOpen, onCloseMenu, onOpenMenu }: MobileNavProps)
               <span className="truncate max-w-[4.5rem] px-0.5">
                 {item.key === "nav.clarity"
                   ? t("nav.clarityShort")
-                  : item.key === "nav.stateCheck"
-                    ? t("nav.stateCheckShort")
+                  : item.key === "nav.innerOs"
+                    ? t("nav.innerOsShort")
                     : t(item.key).split(" ")[0]}
               </span>
             </Link>
