@@ -129,11 +129,48 @@ export default function TasksPage() {
     setTimeout(() => setReplenishMsg(null), 4000);
   };
 
+  const applyOptimisticStatus = (id: string, status: TaskStatus) => {
+    if (isClosed(status)) {
+      const fromFocus = menu?.tasks.find((tk) => tk.id === id);
+      setMenu((prev) =>
+        prev ? { ...prev, tasks: prev.tasks.filter((tk) => tk.id !== id) } : prev
+      );
+      setClarityPlans((prev) =>
+        prev
+          .map((p) => ({ ...p, tasks: p.tasks.filter((tk) => tk.id !== id) }))
+          .filter((p) => p.tasks.length > 0)
+      );
+      if (fromFocus) {
+        setRecentClosed((prev) =>
+          prev.some((r) => r.id === id) ? prev : [{ ...fromFocus, status }, ...prev]
+        );
+      }
+    } else {
+      setMenu((prev) =>
+        prev
+          ? { ...prev, tasks: prev.tasks.map((tk) => (tk.id === id ? { ...tk, status } : tk)) }
+          : prev
+      );
+      setClarityPlans((prev) =>
+        prev.map((p) => ({
+          ...p,
+          tasks: p.tasks.map((tk) => (tk.id === id ? { ...tk, status } : tk)),
+        }))
+      );
+      setRecentClosed((prev) => prev.map((tk) => (tk.id === id ? { ...tk, status } : tk)));
+    }
+  };
+
   const setStatus = async (id: string, status: TaskStatus) => {
     setUpdatingStatusId(id);
+    applyOptimisticStatus(id, status);
     try {
       const result = await api.updateTask(id, { status });
       if (result.replenished?.created) notify(t("tasks.replenished"));
+      else notify(t("tasks.statusUpdated"));
+      await load();
+    } catch (e) {
+      notify(e instanceof Error ? e.message : t("tasks.loadError"));
       await load();
     } finally {
       setUpdatingStatusId(null);
