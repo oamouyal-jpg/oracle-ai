@@ -291,7 +291,8 @@ export default function TasksPage() {
             }
             placeholder={t("tasks.progressPlaceholder")}
             disabled={busy}
-            className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-sm text-zinc-200 placeholder:text-zinc-600"
+            wrapperClassName="flex-1 min-w-0"
+            className="w-full min-w-0 px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-sm text-zinc-200 placeholder:text-zinc-600"
             onKeyDown={(e) => {
               if (e.key === "Enter") submitFollowUp(task.id);
             }}
