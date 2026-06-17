@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { VoiceInput } from "@/components/speech/VoiceInput";
+import { VoiceTextarea } from "@/components/speech/VoiceTextarea";
 import { TaskScheduleEditor } from "@/components/tasks/TaskScheduleEditor";
 import {
   api,
@@ -226,11 +226,11 @@ export default function TasksPage() {
     try {
       const result = await api.submitTaskFollowUp(taskId, progress);
       setProgressDrafts((prev) => ({ ...prev, [taskId]: "" }));
-      if (result.suggestedStatus) notify(t("tasks.statusUpdated"));
       if (result.replenished?.created) notify(t("tasks.replenished"));
+      else notify(t("tasks.statusUpdated"));
       await load();
     } catch (e) {
-      console.error(e);
+      notify(e instanceof Error ? e.message : t("tasks.loadError"));
     } finally {
       setSubmittingFollowUp(null);
     }
@@ -283,28 +283,31 @@ export default function TasksPage() {
             {localizeApiPhrase(followUp.lastOracleReply, locale)}
           </p>
         )}
-        <div className="flex gap-2 pt-1">
-          <VoiceInput
+        <div className="space-y-2 pt-1">
+          <VoiceTextarea
             value={progressDrafts[task.id] ?? ""}
             onChange={(val) =>
               setProgressDrafts((prev) => ({ ...prev, [task.id]: val }))
             }
             placeholder={t("tasks.progressPlaceholder")}
             disabled={busy}
-            wrapperClassName="flex-1 min-w-0"
-            className="w-full min-w-0 px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-sm text-zinc-200 placeholder:text-zinc-600"
+            rows={3}
+            wrapperClassName="w-full"
+            className="w-full min-w-0 resize-none px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-sm text-zinc-200 placeholder:text-zinc-600"
             onKeyDown={(e) => {
-              if (e.key === "Enter") submitFollowUp(task.id);
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submitFollowUp(task.id);
             }}
           />
-          <button
-            type="button"
-            disabled={busy || !progressDrafts[task.id]?.trim()}
-            onClick={() => submitFollowUp(task.id)}
-            className="shrink-0 px-3 py-2 rounded-lg bg-violet-500/20 border border-violet-500/40 text-violet-200 text-xs hover:bg-violet-500/30 disabled:opacity-40"
-          >
-            {busy ? "…" : t("tasks.submitProgress")}
-          </button>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              disabled={busy || !progressDrafts[task.id]?.trim()}
+              onClick={() => submitFollowUp(task.id)}
+              className="px-4 py-2 rounded-lg bg-violet-500/20 border border-violet-500/40 text-violet-200 text-xs hover:bg-violet-500/30 disabled:opacity-40"
+            >
+              {busy ? "…" : t("tasks.submitProgress")}
+            </button>
+          </div>
         </div>
       </div>
     );
