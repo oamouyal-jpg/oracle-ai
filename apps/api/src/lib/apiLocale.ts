@@ -108,6 +108,31 @@ const S = {
     he: "בצע משימה אחת בעלת מינוף גבוה בכל פעם.",
     fr: "Exécutez une tâche à fort levier à la fois.",
   },
+  nudgeOverdueTitle: {
+    en: "{name}, don't let these slip",
+    he: "{name}, אל תיתן לזה ליפול",
+    fr: "{name}, ne laissez pas filer",
+  },
+  nudgeOverdueBody: {
+    en: "{count} overdue — pick one and act for 10 minutes. Momentum beats perfection.",
+    he: "{count} באיחור — בחר אחד ופעל 10 דקות. מומנטום מנצח שלמות.",
+    fr: "{count} en retard — choisissez-en une et agissez 10 min. L'élan vaut mieux que la perfection.",
+  },
+  nudgeFocusTitle: {
+    en: "Your next move · {name}",
+    he: "המהלך הבא שלך · {name}",
+    fr: "Votre prochain pas · {name}",
+  },
+  nudgeTestTitle: {
+    en: "Oracle is watching your priorities",
+    he: "Oracle עוקב אחרי העדיפויות שלך",
+    fr: "Oracle veille sur vos priorités",
+  },
+  nudgeTestBody: {
+    en: "Push notifications are on. Oracle will nudge you toward what matters — even when the app is closed.",
+    he: "התראות פוש פעילות. Oracle יזכיר לך מה חשוב — גם כשהאפליקציה סגורה.",
+    fr: "Les notifications push sont activées. Oracle vous orientera vers l'essentiel — même app fermée.",
+  },
 } as const satisfies Record<string, Record<AppLocale, string>>;
 
 function fill(template: string, vars?: Vars): string {

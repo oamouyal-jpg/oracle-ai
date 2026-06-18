@@ -7,6 +7,8 @@ import { WebSocketServer } from "ws";
 import { apiRouter } from "./routes/index.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { getOpenAIStatus } from "./lib/openai.js";
+import { runScheduler } from "./services/proactiveEngine.js";
+import { pushConfigured } from "./lib/push.js";
 
 const app = express();
 const port = Number(process.env.PORT) || 4000;
@@ -55,3 +57,17 @@ wss.on("connection", (ws) => {
 server.listen(port, "0.0.0.0", () => {
   console.log(`Oracle API running on http://0.0.0.0:${port}`);
 });
+
+// Proactive scheduler: nudges users toward priorities via web push, even when
+// the app is closed. Runs in-process every minute. Disable with SCHEDULER_ENABLED=false
+// (e.g. when driving delivery from an external Render Cron Job hitting /run-scheduler).
+if (process.env.SCHEDULER_ENABLED !== "false") {
+  const tick = () => {
+    runScheduler().catch((err) =>
+      console.warn("[Oracle] scheduler tick failed:", (err as Error)?.message)
+    );
+  };
+  setTimeout(tick, 15000);
+  setInterval(tick, 60000);
+  console.log(`[Oracle] proactive scheduler enabled (web push configured: ${pushConfigured()})`);
+}

@@ -17,6 +17,14 @@ model User {
   onboardingComplete Boolean           @default(false)
   onboardingContext  Json?
   energyLevel        Int               @default(70)
+  locale             String            @default("en")
+  timezone           String?
+  pushEnabled        Boolean           @default(false)
+  proactiveEnabled   Boolean           @default(true)
+  morningHour        Int               @default(7)
+  morningMinute      Int               @default(30)
+  quietHoursStart    Int               @default(22)
+  quietHoursEnd      Int               @default(7)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   domains          Domain[]
@@ -43,6 +51,38 @@ model User {
   innerSessions      InnerSession[]
   agentActions       ActionExecutionQueue[]
   actionFollowThroughs ActionFollowThrough[]
+  pushSubscriptions  PushSubscription[]
+  notificationLogs   NotificationLog[]
+}
+
+// ─── Proactive notifications: web push + delivery dedup ───
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model NotificationLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  dedupeKey String
+  title     String
+  body      String
+  url       String?
+  sentAt    DateTime @default(now())
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, sentAt])
 }
 
 model Domain {

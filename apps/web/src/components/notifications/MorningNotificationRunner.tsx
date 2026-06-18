@@ -6,12 +6,16 @@ import {
   registerOracleServiceWorker,
 } from "@/lib/morningNotifications";
 import { maybeSendTaskReminders } from "@/lib/taskScheduling";
+import { isPushSubscribed } from "@/lib/webPush";
 
 export function MorningNotificationRunner() {
   useEffect(() => {
     registerOracleServiceWorker().catch(() => {});
 
-    const tick = () => {
+    const tick = async () => {
+      // When server-side web push is active it handles all delivery (even when
+      // the app is closed), so skip the foreground poller to avoid duplicates.
+      if (await isPushSubscribed()) return;
       maybeSendMorningNotification().catch(() => {});
       maybeSendTaskReminders().catch(() => {});
     };

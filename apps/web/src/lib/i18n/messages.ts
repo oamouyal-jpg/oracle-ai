@@ -1,4 +1,4 @@
-import { he as heMessages } from "./locales/he";
+﻿import { he as heMessages } from "./locales/he";
 import { fr as frMessages } from "./locales/fr";
 
 export type Locale = "en" | "he" | "fr";
@@ -91,6 +91,30 @@ const en = {
     enabled: "Morning notifications enabled",
     denied: "Notifications blocked — enable them in your phone settings.",
     unsupported: "Notifications are not supported in this browser.",
+    pushTitle: "Proactive push",
+    pushHint:
+      "Oracle pushes your #1 priority each morning, reminds you about due and overdue tasks, and nudges you toward action — even when the app is closed.",
+    enablePush: "Enable push (works when app is closed)",
+    pushActive: "Push on — Oracle nudges you even when closed",
+    disable: "Turn off",
+    proactiveLabel: "Proactive priority nudges",
+    morningTimeLabel: "Morning",
+    quietHours: "Quiet hours",
+    to: "to",
+    test: "Send test push",
+    testSent: "Test push sent",
+    pushError: "Couldn't enable push. Try again.",
+  },
+  rightNow: {
+    title: "Right now",
+    act: "Act on this",
+    overdueAlert: "{count} overdue",
+    dueTodayAlert: "{count} due today",
+    allClear: "Nothing urgent. Choose a mission and make one move.",
+    kindOverdue: "Overdue — clear this first",
+    kindDueToday: "Due today",
+    kindFocus: "Your #1 focus",
+    kindClarity: "Next clarity step",
   },
   mobile: {
     menu: "Menu",

@@ -8,6 +8,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { QuickCheckIn } from "@/components/alignment/QuickCheckIn";
 import { DailyOracleMoment } from "@/components/dashboard/DailyOracleMoment";
+import { RightNowBanner } from "@/components/dashboard/RightNowBanner";
 import { api, type DashboardData, type DailyOracleLine } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
@@ -140,6 +141,8 @@ export default function CommandCenter() {
           ) : null}
         </GlassCard>
       ) : null}
+
+      <RightNowBanner />
 
       <Link href="/clarity/new">
         <GlassCard

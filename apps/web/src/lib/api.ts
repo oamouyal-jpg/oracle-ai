@@ -216,6 +216,27 @@ export const api = {
     fetchApi<{ ok: boolean }>(`/notifications/task-reminders/${taskId}/ack`, {
       method: "POST",
     }),
+  vapidPublicKey: () =>
+    fetchApi<{ key: string | null; configured: boolean }>("/notifications/vapid-public-key"),
+  subscribePush: (data: PushSubscribeInput) =>
+    fetchApi<{ ok: boolean }>("/notifications/subscribe", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  unsubscribePush: (endpoint: string) =>
+    fetchApi<{ ok: boolean }>("/notifications/unsubscribe", {
+      method: "POST",
+      body: JSON.stringify({ endpoint }),
+    }),
+  notificationPrefs: () => fetchApi<NotificationPrefs>("/notifications/preferences"),
+  updateNotificationPrefs: (data: Partial<NotificationPrefsUpdate>) =>
+    fetchApi<NotificationPrefs>("/notifications/preferences", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  testPush: () =>
+    fetchApi<{ ok: boolean; delivered: number }>("/notifications/test", { method: "POST" }),
+  proactiveSnapshot: () => fetchApi<ProactiveSnapshot>("/notifications/proactive"),
   clarityIssues: (status?: string) =>
     fetchApi<ClarityIssueListItem[]>(`/clarity${status ? `?status=${status}` : ""}`),
   clarityIssue: (id: string) => fetchApi<ClarityIssueDetail>(`/clarity/${id}`),
@@ -369,6 +390,43 @@ export interface TaskReminderPayload {
   scheduledAt: string | null;
   reminderAt: string;
   overdue: boolean;
+}
+
+export interface PushSubscribeInput {
+  subscription: { endpoint: string; keys: { p256dh: string; auth: string } };
+  timezone?: string;
+  locale?: string;
+  userAgent?: string;
+}
+
+export interface NotificationPrefs {
+  pushEnabled: boolean;
+  proactiveEnabled: boolean;
+  timezone: string | null;
+  locale: string;
+  morningHour: number;
+  morningMinute: number;
+  quietHoursStart: number;
+  quietHoursEnd: number;
+  subscriptions: number;
+  pushSupported: boolean;
+}
+
+export interface NotificationPrefsUpdate {
+  proactiveEnabled: boolean;
+  timezone: string;
+  locale: string;
+  morningHour: number;
+  morningMinute: number;
+  quietHoursStart: number;
+  quietHoursEnd: number;
+}
+
+export interface ProactiveSnapshot {
+  topAction: { kind: string; title: string; detail: string | null; url: string } | null;
+  overdueCount: number;
+  dueTodayCount: number;
+  focusCount: number;
 }
 
 export interface Domain {

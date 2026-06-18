@@ -28,6 +28,21 @@ services:
         sync: false
       - key: DEV_USER_ID
         value: dev-user
+      # Web push (VAPID) — set these in the dashboard. Generate with:
+      #   npx web-push generate-vapid-keys
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        value: mailto:notify@oracle.app
+      # Shared secret guarding POST /api/notifications/run-scheduler (used by the cron below)
+      - key: SCHEDULER_SECRET
+        sync: false
+      # In-process scheduler runs every minute. On the free plan the web service
+      # sleeps when idle, so the cron job below also drives delivery as a backup.
+      - key: SCHEDULER_ENABLED
+        value: "true"
 
   - type: web
     name: oracle-ai
@@ -44,4 +59,23 @@ services:
       - key: NODE_OPTIONS
         value: "--max-old-space-size=460"
       - key: NEXT_PUBLIC_API_URL
+        sync: false
+
+  # Backup delivery: pings the scheduler every 5 minutes so push nudges fire even
+  # when the free-plan web service has gone to sleep. Set API_BASE_URL + SCHEDULER_SECRET.
+  - type: cron
+    name: oracle-scheduler
+    runtime: node
+    rootDir: apps/api
+    plan: free
+    schedule: "*/5 * * * *"
+    buildCommand: npm install
+    command: >
+      node -e "fetch(process.env.API_BASE_URL + '/api/notifications/run-scheduler', { method: 'POST', headers: { 'x-scheduler-secret': process.env.SCHEDULER_SECRET } }).then(r => r.text()).then(t => console.log('scheduler:', t)).catch(e => { console.error(e); process.exit(1); })"
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: API_BASE_URL
+        sync: false
+      - key: SCHEDULER_SECRET
         sync: false
