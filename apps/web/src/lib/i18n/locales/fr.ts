@@ -112,7 +112,8 @@ export const fr = {
     copyPrompt: "Copiez ce lien :",
     addToHome: "Ajouter à l'écran d'accueil",
     installApp: "Installer l'application",
-    installHint: "Menu du navigateur → Ajouter à l'écran d'accueil / Installer",
+    installHint: "Ouvrez le menu du navigateur → « Ajouter à l'écran d'accueil » / « Installer ».",
+    installIos: "Sur iPhone : touchez l'icône Partager dans Safari, puis « Ajouter à l'écran d'accueil ».",
   },
   common: {
     loading: "Initialisation d'Oracle...",

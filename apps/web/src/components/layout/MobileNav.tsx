@@ -7,7 +7,7 @@ import { MoreHorizontal, X } from "lucide-react";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { mobileTabItems, navItems } from "./navConfig";
-import { ShareButton, InstallHint, InstallButton } from "./ShareButton";
+import { ShareButton, InstallButton } from "./ShareButton";
 import { OperatorProfile } from "./OperatorProfile";
 
 type MobileNavProps = {
@@ -87,7 +87,6 @@ export function MobileNav({ menuOpen, onCloseMenu, onOpenMenu }: MobileNavProps)
             <OperatorProfile />
             <InstallButton />
             <ShareButton variant="pill" className="w-full justify-center" />
-            <InstallHint />
             <LanguageSwitcher />
           </div>
         </div>

@@ -112,7 +112,8 @@ export const he = {
     copyPrompt: "העתק את הקישור:",
     addToHome: "הוסף למסך הבית",
     installApp: "התקן אפליקציה",
-    installHint: "בתפריט הדפדפן: Add to Home Screen / Install app",
+    installHint: "פתח את תפריט הדפדפן ← \"הוסף למסך הבית\" / \"התקן אפליקציה\".",
+    installIos: "באייפון: הקש על אייקון השיתוף בספארי ואז \"הוסף למסך הבית\".",
   },
   common: {
     loading: "מאתחל את Oracle...",

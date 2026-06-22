@@ -128,7 +128,8 @@ const en = {
     copyPrompt: "Copy this link:",
     addToHome: "Add to Home Screen",
     installApp: "Install app",
-    installHint: "Use browser menu → Add to Home Screen / Install app",
+    installHint: "Open your browser menu → \"Add to Home Screen\" / \"Install app\".",
+    installIos: "On iPhone: tap the Share icon in Safari, then \"Add to Home Screen\".",
   },
   common: {
     loading: "Initializing Oracle...",

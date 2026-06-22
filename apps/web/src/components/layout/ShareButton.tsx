@@ -80,12 +80,20 @@ export function InstallButton() {
   const { t } = useLocale();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
+  const [isIos, setIsIos] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       ("standalone" in navigator && (navigator as Navigator & { standalone?: boolean }).standalone);
     if (standalone) setInstalled(true);
+
+    const ua = navigator.userAgent || "";
+    const iOS =
+      /iphone|ipad|ipod/i.test(ua) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    setIsIos(iOS);
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
@@ -103,24 +111,35 @@ export function InstallButton() {
     };
   }, []);
 
-  if (installed || !deferred) return null;
+  if (installed) return null;
 
   const handleInstall = async () => {
-    await deferred.prompt();
-    const { outcome } = await deferred.userChoice;
-    if (outcome === "accepted") setInstalled(true);
-    setDeferred(null);
+    if (deferred) {
+      await deferred.prompt();
+      const { outcome } = await deferred.userChoice;
+      if (outcome === "accepted") setInstalled(true);
+      setDeferred(null);
+      return;
+    }
+    setShowHelp((v) => !v);
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleInstall}
-      className="flex w-full items-center justify-center gap-2 rounded-full border border-indigo-400/40 bg-indigo-500/20 px-4 py-2 text-sm font-medium text-indigo-100 transition hover:bg-indigo-500/30"
-    >
-      <Download className="h-4 w-4" />
-      {t("share.installApp")}
-    </button>
+    <div className="space-y-1.5">
+      <button
+        type="button"
+        onClick={handleInstall}
+        className="flex w-full items-center justify-center gap-2 rounded-full border border-indigo-400/40 bg-indigo-500/20 px-4 py-2 text-sm font-medium text-indigo-100 transition hover:bg-indigo-500/30"
+      >
+        <Download className="h-4 w-4" />
+        {t("share.installApp")}
+      </button>
+      {showHelp && !deferred ? (
+        <p className="px-1 text-[10px] leading-relaxed text-zinc-400">
+          {isIos ? t("share.installIos") : t("share.installHint")}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
