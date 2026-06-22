@@ -128,6 +128,16 @@ const S = {
     he: "Oracle עוקב אחרי העדיפויות שלך",
     fr: "Oracle veille sur vos priorités",
   },
+  clarityNorthStarSet: {
+    en: "North Star set. Your first move is ready — focus on that only until it's done.",
+    he: "הכיוון נקבע. המהלך הראשון מוכן — התמקד רק בו עד שיושלם.",
+    fr: "Cap fixé. Votre premier pas est prêt — concentrez-vous uniquement dessus jusqu'au bout.",
+  },
+  clarityNewIssue: {
+    en: "New clarity session",
+    he: "סשן בהירות חדש",
+    fr: "Nouvelle séance de clarté",
+  },
   nudgeTestBody: {
     en: "Push notifications are on. Oracle will nudge you toward what matters — even when the app is closed.",
     he: "התראות פוש פעילות. Oracle יזכיר לך מה חשוב — גם כשהאפליקציה סגורה.",

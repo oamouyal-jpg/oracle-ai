@@ -444,9 +444,7 @@ ${rawInput}`;
 }
 
 function localeHintLine(locale: AppLocale): string {
-  if (locale === "he") return "Write all user-facing strings in natural Hebrew. Keep JSON keys in English.";
-  if (locale === "fr") return "Write all user-facing strings in natural French. Keep JSON keys in English.";
-  return "Write all user-facing strings in English.";
+  return localeAiInstruction(locale);
 }
 
 export async function submitInnerReflection(

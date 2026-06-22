@@ -127,6 +127,7 @@ const en = {
     copied: "Link copied!",
     copyPrompt: "Copy this link:",
     addToHome: "Add to Home Screen",
+    installApp: "Install app",
     installHint: "Use browser menu → Add to Home Screen / Install app",
   },
   common: {

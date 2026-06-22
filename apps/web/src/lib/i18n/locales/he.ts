@@ -111,6 +111,7 @@ export const he = {
     copied: "הקישור הועתק!",
     copyPrompt: "העתק את הקישור:",
     addToHome: "הוסף למסך הבית",
+    installApp: "התקן אפליקציה",
     installHint: "בתפריט הדפדפן: Add to Home Screen / Install app",
   },
   common: {

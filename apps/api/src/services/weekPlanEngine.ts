@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { createChatCompletion } from "../lib/openai.js";
-import type { AppLocale } from "../lib/locale.js";
+import { localeAiInstruction, type AppLocale } from "../lib/locale.js";
 import type { ClarityConstraintType } from "@prisma/client";
 import {
   createTaskForClarityStep,
@@ -52,9 +52,7 @@ export type WeekPlanPayload = {
 };
 
 function localeHint(locale: AppLocale): string {
-  if (locale === "he") return "Write all user-facing strings in Hebrew.";
-  if (locale === "fr") return "Write all user-facing strings in French.";
-  return "Write all user-facing strings in English.";
+  return localeAiInstruction(locale);
 }
 
 function parseJson<T>(text: string): T | null {

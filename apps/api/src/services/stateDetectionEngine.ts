@@ -2,7 +2,7 @@ import type { DetectedState, StateSnapshot, UserPattern } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { createChatCompletion } from "../lib/openai.js";
 import { asStringArray } from "../lib/arrays.js";
-import type { AppLocale } from "../lib/locale.js";
+import { localeAiInstruction, type AppLocale } from "../lib/locale.js";
 
 const STATE_SYSTEM = `You are Oracle, a state-aware life copilot.
 Your job is to help the user distinguish between facts, interpretations, emotions, and actions.
@@ -66,9 +66,7 @@ function parseJson<T>(text: string): T | null {
 }
 
 function localeHint(locale: AppLocale): string {
-  if (locale === "he") return "Write all user-facing strings in Hebrew.";
-  if (locale === "fr") return "Write all user-facing strings in French.";
-  return "Write all user-facing strings in English.";
+  return localeAiInstruction(locale);
 }
 
 function clampScore(n: number, fallback = 5): number {

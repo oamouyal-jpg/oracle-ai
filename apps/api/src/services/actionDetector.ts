@@ -3,7 +3,7 @@ import type {
   AgentActionType,
 } from "@prisma/client";
 import { createChatCompletion } from "../lib/openai.js";
-import type { AppLocale } from "../lib/locale.js";
+import { localeAiInstruction, type AppLocale } from "../lib/locale.js";
 
 export type DetectedAction = {
   classification: ActionClassification;
@@ -53,9 +53,7 @@ function parseJson<T>(text: string): T | null {
 }
 
 function localeHint(locale: AppLocale): string {
-  if (locale === "he") return "Write user-facing strings in Hebrew.";
-  if (locale === "fr") return "Write user-facing strings in French.";
-  return "Write user-facing strings in English.";
+  return localeAiInstruction(locale);
 }
 
 function normalizeType(raw: string | undefined): AgentActionType {

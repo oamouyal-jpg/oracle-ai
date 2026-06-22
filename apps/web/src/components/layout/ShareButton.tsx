@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Share2, Check, Link2 } from "lucide-react";
+import { Share2, Check, Link2, Download } from "lucide-react";
 import { clsx } from "clsx";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
 
 type ShareButtonProps = {
   className?: string;
@@ -67,6 +72,54 @@ export function ShareButton({ className, variant = "icon" }: ShareButtonProps) {
       )}
     >
       <Icon className="h-4 w-4" />
+    </button>
+  );
+}
+
+export function InstallButton() {
+  const { t } = useLocale();
+  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installed, setInstalled] = useState(false);
+
+  useEffect(() => {
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      ("standalone" in navigator && (navigator as Navigator & { standalone?: boolean }).standalone);
+    if (standalone) setInstalled(true);
+
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferred(e as BeforeInstallPromptEvent);
+    };
+    const onInstalled = () => {
+      setInstalled(true);
+      setDeferred(null);
+    };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  if (installed || !deferred) return null;
+
+  const handleInstall = async () => {
+    await deferred.prompt();
+    const { outcome } = await deferred.userChoice;
+    if (outcome === "accepted") setInstalled(true);
+    setDeferred(null);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleInstall}
+      className="flex w-full items-center justify-center gap-2 rounded-full border border-indigo-400/40 bg-indigo-500/20 px-4 py-2 text-sm font-medium text-indigo-100 transition hover:bg-indigo-500/30"
+    >
+      <Download className="h-4 w-4" />
+      {t("share.installApp")}
     </button>
   );
 }

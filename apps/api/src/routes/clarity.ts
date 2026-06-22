@@ -4,6 +4,7 @@ import { asyncHandler } from "../lib/asyncHandler.js";
 import { prisma } from "../lib/prisma.js";
 import { resolveUserId } from "../lib/user.js";
 import { requestLocale } from "../lib/requestLocale.js";
+import { apiStr } from "../lib/apiLocale.js";
 import { HttpError } from "../lib/errors.js";
 import {
   completeCurrentStep,
@@ -100,7 +101,7 @@ clarityRouter.post("/", asyncHandler(async (req, res) => {
   const issue = await prisma.clarityIssue.create({
     data: {
       userId,
-      title: "New clarity issue",
+      title: apiStr("clarityNewIssue", locale),
       rawInput: body.rawInput.trim(),
       emotionalIntensity: body.emotionalIntensity,
       urgency: body.urgency,
@@ -154,18 +155,20 @@ clarityRouter.post("/:id/retry-plan", asyncHandler(async (req, res) => {
 
 clarityRouter.post("/:id/steps/:stepId/complete", asyncHandler(async (req, res) => {
   const userId = await resolveUserId(req);
+  const locale = requestLocale(req);
   const issueId = idParam(req.params.id);
   const stepId = idParam(req.params.stepId);
-  await completeCurrentStep(issueId, stepId, userId);
+  await completeCurrentStep(issueId, stepId, userId, locale);
   const detail = formatIssueDetail(await loadIssueDetail(issueId, userId));
   res.json(detail);
 }));
 
 clarityRouter.post("/:id/steps/:stepId/skip", asyncHandler(async (req, res) => {
   const userId = await resolveUserId(req);
+  const locale = requestLocale(req);
   const issueId = idParam(req.params.id);
   const stepId = idParam(req.params.stepId);
-  await skipCurrentStep(issueId, stepId, userId);
+  await skipCurrentStep(issueId, stepId, userId, locale);
   const detail = formatIssueDetail(await loadIssueDetail(issueId, userId));
   res.json(detail);
 }));

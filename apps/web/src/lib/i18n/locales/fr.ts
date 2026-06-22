@@ -111,6 +111,7 @@ export const fr = {
     copied: "Lien copié !",
     copyPrompt: "Copiez ce lien :",
     addToHome: "Ajouter à l'écran d'accueil",
+    installApp: "Installer l'application",
     installHint: "Menu du navigateur → Ajouter à l'écran d'accueil / Installer",
   },
   common: {

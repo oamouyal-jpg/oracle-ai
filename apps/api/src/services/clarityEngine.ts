@@ -1,7 +1,8 @@
 import { prisma } from "../lib/prisma.js";
 import { asStringArray } from "../lib/arrays.js";
 import { createChatCompletion } from "../lib/openai.js";
-import type { AppLocale } from "../lib/locale.js";
+import { localeAiInstruction, type AppLocale } from "../lib/locale.js";
+import { apiStr } from "../lib/apiLocale.js";
 import type { ClarityConstraintType } from "@prisma/client";
 import {
   createTaskForClarityStep,
@@ -60,9 +61,7 @@ function parseJson<T>(text: string): T | null {
 }
 
 function localeHint(locale: AppLocale): string {
-  if (locale === "he") return "Write all user-facing strings in Hebrew.";
-  if (locale === "fr") return "Write all user-facing strings in French.";
-  return "Write all user-facing strings in English.";
+  return localeAiInstruction(locale);
 }
 
 function offlineIntake(rawInput: string): IntakeAnalysis {
@@ -505,7 +504,7 @@ ${issue.rawInput}${qaBlock}`;
         issueId,
         role: "ASSISTANT",
         kind: "ANALYSIS",
-        content: `North Star set. Your first move is ready — focus on that only until it's done.`,
+        content: apiStr("clarityNorthStarSet", locale),
       },
     });
   });
@@ -519,7 +518,8 @@ ${issue.rawInput}${qaBlock}`;
 export async function completeCurrentStep(
   issueId: string,
   stepId: string,
-  userId: string
+  userId: string,
+  locale: AppLocale = "en"
 ): Promise<void> {
   const step = await prisma.clarityStep.findFirst({
     where: { id: stepId, issueId, issue: { userId } },
@@ -568,7 +568,7 @@ export async function completeCurrentStep(
     }
   });
 
-  await queueActionsForCurrentStep(issueId, userId, "en").catch((err) => {
+  await queueActionsForCurrentStep(issueId, userId, locale).catch((err) => {
     console.warn("[Oracle] Agent action queue skipped:", err instanceof Error ? err.message : err);
   });
 
@@ -580,7 +580,8 @@ export async function completeCurrentStep(
 export async function skipCurrentStep(
   issueId: string,
   stepId: string,
-  userId: string
+  userId: string,
+  locale: AppLocale = "en"
 ): Promise<void> {
   const step = await prisma.clarityStep.findFirst({
     where: { id: stepId, issueId, issue: { userId } },
@@ -625,7 +626,7 @@ export async function skipCurrentStep(
     }
   });
 
-  await queueActionsForCurrentStep(issueId, userId, "en").catch((err) => {
+  await queueActionsForCurrentStep(issueId, userId, locale).catch((err) => {
     console.warn("[Oracle] Agent action queue skipped:", err instanceof Error ? err.message : err);
   });
 }
