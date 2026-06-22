@@ -6,7 +6,7 @@ import { clsx } from "clsx";
 import { motion } from "framer-motion";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { ShareButton } from "./ShareButton";
+import { ShareButton, InstallButton, InstallHint } from "./ShareButton";
 import { OperatorProfile } from "./OperatorProfile";
 import { navItems } from "./navConfig";
 
@@ -59,7 +59,9 @@ export function Sidebar() {
 
         <motion.div className="space-y-3 border-t border-white/5 px-4 py-4">
           <OperatorProfile />
+          <InstallButton />
           <ShareButton variant="pill" className="w-full justify-center" />
+          <InstallHint />
           <LanguageSwitcher />
         </motion.div>
       </motion.div>
