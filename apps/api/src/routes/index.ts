@@ -16,6 +16,7 @@ import { stateCheckRouter } from "./stateCheck.js";
 import { innerOsRouter } from "./innerOs.js";
 import { agentActionsRouter } from "./agentActions.js";
 import { dailyOracleRouter } from "./dailyOracle.js";
+import { developRouter } from "./develop.js";
 
 export const apiRouter = Router();
 
@@ -26,6 +27,7 @@ apiRouter.use("/state-check", stateCheckRouter);
 apiRouter.use("/inner-os", innerOsRouter);
 apiRouter.use("/agent-actions", agentActionsRouter);
 apiRouter.use("/daily-oracle", dailyOracleRouter);
+apiRouter.use("/develop", developRouter);
 
 apiRouter.use("/domains", domainsRouter);
 apiRouter.use("/missions", missionsRouter);

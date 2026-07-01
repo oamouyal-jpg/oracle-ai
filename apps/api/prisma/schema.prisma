@@ -53,6 +53,15 @@ model User {
   actionFollowThroughs ActionFollowThrough[]
   pushSubscriptions  PushSubscription[]
   notificationLogs   NotificationLog[]
+  knowledgeItems     KnowledgeItem[]
+  learningTopics     LearningTopic[]
+  relationships      Relationship[]
+  healthLogs         HealthLog[]
+  financeGoals       FinanceGoal[]
+  creativeIdeas      CreativeIdea[]
+  researchItems      ResearchItem[]
+  graphNodes         GraphNode[]
+  graphEdges         GraphEdge[]
 }
 
 // ─── Proactive notifications: web push + delivery dedup ───
@@ -810,4 +819,192 @@ model ActionFollowThrough {
 
   @@index([queueId, processed])
   @@index([userId, createdAt])
+}
+
+// ─── Human Development OS modules (Version 100 architecture, v0 implementation) ───
+
+model KnowledgeItem {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  summary      String
+  source       String?
+  sourceUrl    String?
+  biasNote     String?
+  uncertainty  String?
+  tags         Json     @default("[]")
+  relevance    Int      @default(50)
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model LearningTopic {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic          String
+  proficiency    Int      @default(0)
+  misconceptions Json     @default("[]")
+  readyToLearn   Boolean  @default(false)
+  nextStep       String?
+  notes          String?
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Relationship {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name               String
+  role               String?
+  notes              String?
+  conflictPatterns   Json     @default("[]")
+  communicationTips  Json     @default("[]")
+  importance         Int      @default(50)
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum HealthLogKind {
+  SLEEP
+  ENERGY
+  EXERCISE
+  MOOD
+  NUTRITION
+  OTHER
+}
+
+model HealthLog {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      HealthLogKind @default(OTHER)
+  value     Int?
+  note      String?
+  loggedAt  DateTime      @default(now())
+  createdAt DateTime      @default(now())
+
+  @@index([userId, loggedAt])
+}
+
+enum FinanceGoalStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+model FinanceGoal {
+  id            String            @id @default(cuid())
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  targetAmount  Float?
+  currentAmount Float?
+  dueDate       DateTime?
+  notes         String?
+  status        FinanceGoalStatus @default(ACTIVE)
+  updatedAt     DateTime          @updatedAt
+  createdAt     DateTime          @default(now())
+
+  @@index([userId])
+}
+
+enum CreativeIdeaStatus {
+  SPARK
+  DEVELOPING
+  DONE
+  ARCHIVED
+}
+
+model CreativeIdea {
+  id          String             @id @default(cuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  connections Json               @default("[]")
+  status      CreativeIdeaStatus @default(SPARK)
+  updatedAt   DateTime           @updatedAt
+  createdAt   DateTime           @default(now())
+
+  @@index([userId])
+}
+
+enum ResearchItemStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETE
+}
+
+model ResearchItem {
+  id        String             @id @default(cuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  query     String
+  synthesis String?
+  sources   Json               @default("[]")
+  status    ResearchItemStatus @default(OPEN)
+  updatedAt DateTime           @updatedAt
+  createdAt DateTime           @default(now())
+
+  @@index([userId])
+}
+
+enum GraphNodeKind {
+  MISSION
+  CLARITY
+  MEMORY
+  JOURNAL
+  PERSON
+  CONCEPT
+  TASK
+  IDEA
+  LEARNING
+}
+
+model GraphNode {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      GraphNodeKind
+  refId     String?
+  label     String
+  meta      Json          @default("{}")
+  createdAt DateTime      @default(now())
+
+  edgesFrom GraphEdge[] @relation("EdgeFrom")
+  edgesTo   GraphEdge[] @relation("EdgeTo")
+
+  @@index([userId, kind])
+}
+
+enum GraphEdgeKind {
+  RELATED
+  SUPPORTS
+  BLOCKS
+  INSPIRED_BY
+  LEARNED_FROM
+}
+
+model GraphEdge {
+  id         String        @id @default(cuid())
+  userId     String
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromNodeId String
+  fromNode   GraphNode     @relation("EdgeFrom", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNodeId   String
+  toNode     GraphNode     @relation("EdgeTo", fields: [toNodeId], references: [id], onDelete: Cascade)
+  kind       GraphEdgeKind @default(RELATED)
+  strength   Int           @default(50)
+  createdAt  DateTime      @default(now())
+
+  @@index([userId])
+  @@index([fromNodeId, toNodeId])
 }

@@ -14,6 +14,7 @@ import {
   Bot,
   Sparkles,
   Compass,
+  GraduationCap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ export type NavItem = {
   href: string;
   key:
     | "nav.commandCenter"
+    | "nav.develop"
     | "nav.clarity"
     | "nav.innerOs"
     | "nav.agentActions"
@@ -40,6 +42,7 @@ export type NavItem = {
 
 export const navItems: NavItem[] = [
   { href: "/", key: "nav.commandCenter", icon: LayoutDashboard },
+  { href: "/develop", key: "nav.develop", icon: GraduationCap },
   { href: "/clarity", key: "nav.clarity", icon: Sparkles },
   { href: "/inner-os", key: "nav.innerOs", icon: Brain },
   { href: "/agent-actions", key: "nav.agentActions", icon: Bot },

@@ -15,13 +15,13 @@ Maps the Human Development OS vision ([VISION.md](./VISION.md)) to code today an
 | **Vision Engine** | partial | Life map, daily briefing, dashboard, insights | ✓ |
 | **Communication Engine** | partial | Agent actions queue, clarity advice chat | ✓ |
 | **Ethics Engine** | partial | Inner OS safety rules, no-diagnosis policy, possibility framing | ✓ |
-| **Knowledge Engine** | planned | Briefing is a seed; no trusted-source ingestion yet | — |
-| **Learning Engine** | planned | — | — |
-| **Relationship Engine** | planned | — | — |
-| **Health Engine** | planned | Journal mood only | partial |
-| **Finance Engine** | planned | — | — |
-| **Creativity Engine** | planned | — | — |
-| **Research Engine** | planned | Agent actions mock/partial | partial |
+| **Knowledge Engine** | partial | `KnowledgeItem`, `hdosAiEngine`, `/api/develop/knowledge`, cognitive profile | ✓ |
+| **Learning Engine** | partial | `LearningTopic`, AI paths, `/api/develop/learning` | ✓ |
+| **Relationship Engine** | partial | `Relationship` CRUD, `/api/develop/relationships` | ✓ |
+| **Health Engine** | partial | `HealthLog`, mood/energy tracking, `/api/develop/health` | ✓ |
+| **Finance Engine** | partial | `FinanceGoal`, `/api/develop/finance` | ✓ |
+| **Creativity Engine** | partial | `CreativeIdea`, `/api/develop/creativity` | ✓ |
+| **Research Engine** | partial | `ResearchItem`, AI synthesis, `/api/develop/research` | ✓ |
 
 ## Architecture rules (from VISION)
 
@@ -38,4 +38,5 @@ These grow the vision without architectural redesign:
 1. **Semantic memory search** — extend `AIMemory` with embeddings; reconnect forgotten ideas proactively.
 2. **Learning Engine v0** — track what the user knows vs. wants to learn; adaptive paths from journal + chat.
 3. **Knowledge Engine v0** — curated briefing sources with bias/uncertainty labels (extend daily briefing).
-4. **Knowledge graph v0** — link missions, clarity issues, journal entries, and memories in `life-map`.
+4. **Knowledge graph v0** — link missions, clarity issues, journal entries, and memories in `life-map` and `/develop` graph tab (`knowledgeGraphEngine.ts`).
+5. **Cognitive profile** — unified user model at `/develop` (`cognitiveProfileEngine.ts`).

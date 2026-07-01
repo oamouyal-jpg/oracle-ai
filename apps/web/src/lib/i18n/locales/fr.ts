@@ -11,6 +11,7 @@ export const fr = {
   },
   nav: {
     commandCenter: "Tableau de bord",
+    develop: "Développement",
     clarity: "Y voir clair",
     clarityShort: "Y voir clair",
     innerOs: "Système intérieur",
@@ -89,6 +90,34 @@ export const fr = {
     test: "Envoyer un test",
     testSent: "Push de test envoyé",
     pushError: "Activation du push impossible. Réessayez.",
+  },
+  develop: {
+    badge: "Système de développement humain",
+    title: "Développement",
+    subtitle: "Le modèle vivant qu'Oracle a de vous — connaissance, apprentissage, relations, santé, finances, créativité et recherche.",
+    initialize: "Initialiser les modules",
+    generate: "Générer avec l'IA",
+    add: "Ajouter",
+    addPlaceholder: "Saisir et ajouter…",
+    emptyHint: "Vide — touchez Initialiser ou Générer pour remplir à partir de vos données.",
+    readyToLearn: "Prêt à apprendre",
+    patterns: "Schémas détectés",
+    healthNote: "Comment vous sentez-vous ?",
+    researchPlaceholder: "Que voulez-vous rechercher ?",
+    researchRun: "Rechercher",
+    graphDesc: "Le graphe relie missions, clarté, mémoires, personnes et idées.",
+    rebuildGraph: "Reconstruire",
+    tabs: {
+      profile: "Vous",
+      knowledge: "Connaissance",
+      learning: "Apprentissage",
+      relationships: "Relations",
+      health: "Santé",
+      finance: "Finances",
+      creativity: "Créativité",
+      research: "Recherche",
+      graph: "Carte mentale",
+    },
   },
   rightNow: {
     title: "Maintenant",
@@ -181,6 +210,10 @@ export const fr = {
     clarityPromoBody:
       "Un grand enjeu → Objectif principal → prochain pas. Posez le chaos, Oracle vous donne l'action utile maintenant.",
     clarityPromoCta: "Commencer Y voir clair",
+    developPromoTitle: "Système de développement humain",
+    developPromoBody:
+      "Votre modèle vivant — connaissance, apprentissage, relations, santé, finances, créativité et recherche en un seul endroit.",
+    developPromoCta: "Ouvrir Développement",
   },
   dailyOracle: {
     label: "Oracle du jour",

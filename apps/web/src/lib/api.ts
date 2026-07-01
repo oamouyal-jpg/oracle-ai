@@ -369,6 +369,25 @@ export const api = {
       `/agent-actions/${id}/follow-through`,
       { method: "POST", body: JSON.stringify(data) }
     ),
+  developHub: () => fetchApi<DevelopHub>("/develop/hub"),
+  developSeed: () =>
+    fetchApi<{ ok: boolean; seeded: Record<string, number>; hub: DevelopHub }>("/develop/seed", {
+      method: "POST",
+    }),
+  developGraph: () => fetchApi<KnowledgeGraph>("/develop/graph"),
+  developGraphRebuild: () => fetchApi<KnowledgeGraph>("/develop/graph/rebuild", { method: "POST" }),
+  generateKnowledge: () => fetchApi<KnowledgeItem[]>("/develop/knowledge/generate", { method: "POST" }),
+  generateLearning: () => fetchApi<LearningTopic[]>("/develop/learning/generate", { method: "POST" }),
+  addRelationship: (data: { name: string; role?: string; notes?: string }) =>
+    fetchApi<Relationship>("/develop/relationships", { method: "POST", body: JSON.stringify(data) }),
+  addHealthLog: (data: { kind: string; value?: number; note?: string }) =>
+    fetchApi<HealthLog>("/develop/health", { method: "POST", body: JSON.stringify(data) }),
+  addFinanceGoal: (data: { title: string; targetAmount?: number; currentAmount?: number }) =>
+    fetchApi<FinanceGoal>("/develop/finance", { method: "POST", body: JSON.stringify(data) }),
+  addCreativeIdea: (data: { title: string; description?: string }) =>
+    fetchApi<CreativeIdea>("/develop/creativity", { method: "POST", body: JSON.stringify(data) }),
+  runResearch: (query: string) =>
+    fetchApi<ResearchItem>("/develop/research", { method: "POST", body: JSON.stringify({ query }) }),
 };
 
 export interface MorningNotificationPayload {
@@ -427,6 +446,93 @@ export interface ProactiveSnapshot {
   overdueCount: number;
   dueTodayCount: number;
   focusCount: number;
+}
+
+export interface CognitiveProfile {
+  operatorName: string;
+  summary: string;
+  beliefs: { values: string[]; stableValues: { name: string; description: string | null }[] };
+  patterns: { name: string; description: string | null; count: number }[];
+  blindSpots: string[];
+  moduleCounts: Record<string, number>;
+  learning: { topics: number; readyCount: number };
+  relationships: { count: number; highlights: string[] };
+  health: { recentLogs: number; avgMood: number | null };
+}
+
+export interface KnowledgeItem {
+  id: string;
+  title: string;
+  summary: string;
+  source: string | null;
+  biasNote: string | null;
+  uncertainty: string | null;
+  relevance: number;
+  createdAt: string;
+}
+
+export interface LearningTopic {
+  id: string;
+  topic: string;
+  proficiency: number;
+  readyToLearn: boolean;
+  nextStep: string | null;
+  misconceptions: string[];
+}
+
+export interface Relationship {
+  id: string;
+  name: string;
+  role: string | null;
+  notes: string | null;
+  importance: number;
+}
+
+export interface HealthLog {
+  id: string;
+  kind: string;
+  value: number | null;
+  note: string | null;
+  loggedAt: string;
+}
+
+export interface FinanceGoal {
+  id: string;
+  title: string;
+  targetAmount: number | null;
+  currentAmount: number | null;
+  status: string;
+}
+
+export interface CreativeIdea {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+}
+
+export interface ResearchItem {
+  id: string;
+  query: string;
+  synthesis: string | null;
+  sources: unknown[];
+  status: string;
+}
+
+export interface KnowledgeGraph {
+  nodes: { id: string; kind: string; label: string; refId: string | null }[];
+  edges: { id: string; from: string; to: string; kind: string; strength: number }[];
+}
+
+export interface DevelopHub {
+  profile: CognitiveProfile;
+  knowledge: KnowledgeItem[];
+  learning: LearningTopic[];
+  relationships: Relationship[];
+  health: HealthLog[];
+  finance: FinanceGoal[];
+  creativity: CreativeIdea[];
+  research: ResearchItem[];
 }
 
 export interface Domain {

@@ -11,6 +11,7 @@ export const he = {
   },
   nav: {
     commandCenter: "לוח שליטה",
+    develop: "התפתחות",
     clarity: "בהירות",
     clarityShort: "בהירות",
     innerOs: "מערכת פנימית",
@@ -89,6 +90,34 @@ export const he = {
     test: "שלח פוש לבדיקה",
     testSent: "פוש בדיקה נשלח",
     pushError: "לא ניתן להפעיל פוש. נסה שוב.",
+  },
+  develop: {
+    badge: "מערכת הפיתוח האנושי",
+    title: "התפתחות",
+    subtitle: "המודל החי של Oracle עליך — ידע, למידה, מערכות יחסים, בריאות, כספים, יצירתיות ומחקר במקום אחד.",
+    initialize: "אתחל מודולים",
+    generate: "צור עם AI",
+    add: "הוסף",
+    addPlaceholder: "הקלד והוסף…",
+    emptyHint: "ריק — לחץ אתחל או צור כדי למלא מהנתונים שלך.",
+    readyToLearn: "מוכן ללמוד",
+    patterns: "דפוסים שזוהו",
+    healthNote: "איך אתה מרגיש?",
+    researchPlaceholder: "מה אתה רוצה לחקור?",
+    researchRun: "חקור",
+    graphDesc: "גרף הידע מחבר משימות, בהירות, זיכרונות, אנשים ורעיונות.",
+    rebuildGraph: "בנה מחדש",
+    tabs: {
+      profile: "את/ה",
+      knowledge: "ידע",
+      learning: "למידה",
+      relationships: "אנשים",
+      health: "בריאות",
+      finance: "כספים",
+      creativity: "יצירתיות",
+      research: "מחקר",
+      graph: "מפת מוח",
+    },
   },
   rightNow: {
     title: "עכשיו",
@@ -180,6 +209,10 @@ export const he = {
     clarityPromoBody:
       "בעיה אחת גדולה → לאן הולכים → הצעד הבא. שופכים את הבלגן ו-Oracle מחדד את המהלך.",
     clarityPromoCta: "התחל בהירות",
+    developPromoTitle: "מערכת התפתחות אנושית",
+    developPromoBody:
+      "המודל החי שלך — ידע, למידה, קשרים, בריאות, כספים, יצירתיות ומחקר במקום אחד.",
+    developPromoCta: "פתח התפתחות",
   },
   dailyOracle: {
     label: "Oracle יומי",

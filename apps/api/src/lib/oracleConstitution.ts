@@ -91,13 +91,41 @@ export const ORACLE_MODULES: Record<
     status: "partial",
     servicePaths: ["services/innerOsEngine.ts"],
   },
-  knowledge: { name: "Knowledge Engine", status: "planned", servicePaths: [] },
-  learning: { name: "Learning Engine", status: "planned", servicePaths: [] },
-  relationship: { name: "Relationship Engine", status: "planned", servicePaths: [] },
-  health: { name: "Health Engine", status: "planned", servicePaths: [] },
-  finance: { name: "Finance Engine", status: "planned", servicePaths: [] },
-  creativity: { name: "Creativity Engine", status: "planned", servicePaths: [] },
-  research: { name: "Research Engine", status: "planned", servicePaths: ["services/actionExecutionEngine.ts"] },
+  knowledge: {
+    name: "Knowledge Engine",
+    status: "partial",
+    servicePaths: ["services/hdosAiEngine.ts", "services/knowledgeGraphEngine.ts", "routes/develop.ts"],
+  },
+  learning: {
+    name: "Learning Engine",
+    status: "partial",
+    servicePaths: ["services/hdosAiEngine.ts", "routes/develop.ts"],
+  },
+  relationship: {
+    name: "Relationship Engine",
+    status: "partial",
+    servicePaths: ["routes/develop.ts"],
+  },
+  health: {
+    name: "Health Engine",
+    status: "partial",
+    servicePaths: ["routes/develop.ts"],
+  },
+  finance: {
+    name: "Finance Engine",
+    status: "partial",
+    servicePaths: ["routes/develop.ts"],
+  },
+  creativity: {
+    name: "Creativity Engine",
+    status: "partial",
+    servicePaths: ["routes/develop.ts"],
+  },
+  research: {
+    name: "Research Engine",
+    status: "partial",
+    servicePaths: ["services/hdosAiEngine.ts", "routes/develop.ts", "services/actionExecutionEngine.ts"],
+  },
 };
 
 /** Append constitution to any module-specific system prompt. */

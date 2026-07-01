@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, AlertTriangle } from "lucide-react";
+import { ArrowRight, Sparkles, AlertTriangle, GraduationCap } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { QuickCheckIn } from "@/components/alignment/QuickCheckIn";
@@ -143,6 +143,29 @@ export default function CommandCenter() {
       ) : null}
 
       <RightNowBanner />
+
+      <Link href="/develop">
+        <GlassCard
+          glow
+          className="border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 hover:border-emerald-400/40 transition"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-emerald-300 mb-1">
+                {t("dashboard.developPromoTitle")}
+              </p>
+              <p className="text-base text-zinc-100 leading-relaxed">
+                {t("dashboard.developPromoBody")}
+              </p>
+              <p className="mt-3 inline-flex items-center gap-1 text-sm text-emerald-200 font-medium">
+                {t("dashboard.developPromoCta")}
+                <ArrowRight className="h-4 w-4" />
+              </p>
+            </div>
+            <GraduationCap className="h-8 w-8 shrink-0 text-emerald-300" />
+          </div>
+        </GlassCard>
+      </Link>
 
       <Link href="/clarity/new">
         <GlassCard
