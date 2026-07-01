@@ -3,8 +3,9 @@ import { prisma } from "../lib/prisma.js";
 import { createChatCompletion } from "../lib/openai.js";
 import { asStringArray } from "../lib/arrays.js";
 import { localeAiInstruction, type AppLocale } from "../lib/locale.js";
+import { withOracleConstitution } from "../lib/oracleConstitution.js";
 
-const STATE_SYSTEM = `You are Oracle, a state-aware life copilot.
+const STATE_SYSTEM = withOracleConstitution(`You are Oracle, a state-aware life copilot.
 Your job is to help the user distinguish between facts, interpretations, emotions, and actions.
 Before giving advice, detect the user's current emotional/cognitive state.
 
@@ -14,7 +15,7 @@ Rules:
 - If emotional intensity is high (7+) and fact certainty is low (5 or below), recommend delaying major decisions.
 - Do not give relationship/legal/financial advice when in Threat Detection, Relationship Panic, or Financial Panic — stabilize first.
 - Use calm mirror language: "Current state detected…", "Known facts…", "Possible interpretations…", "Decision risk is high…", "Next safe action…"
-- Respond ONLY with valid JSON. No markdown fences.`;
+- Respond ONLY with valid JSON. No markdown fences.`);
 
 export type StateAnalysisPayload = {
   detectedState: DetectedState;

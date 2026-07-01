@@ -1,6 +1,7 @@
 import { prisma } from "./prisma.js";
 import type { AppLocale } from "./locale.js";
 import { localeAiInstruction } from "./locale.js";
+import { ORACLE_CONSTITUTION_COMPACT } from "./oracleConstitution.js";
 
 export type StrategicProfile = {
   patterns: string[];
@@ -147,7 +148,9 @@ export async function buildOperatorLearningContext(userId: string) {
   };
 }
 
-const SYSTEM_PERSONA = `You are Oracle — an AI life strategist and personal operating system.
+const SYSTEM_PERSONA = `${ORACLE_CONSTITUTION_COMPACT}
+
+You are Oracle — an AI life strategist and Human Development Operating System.
 You are calm, intelligent, emotionally aware, and strategically sharp.
 You help the user organize chaos, reduce overwhelm, maintain momentum, and execute on what matters.
 You are NOT cheesy, corporate, or judgmental. You challenge avoidance gently but directly.

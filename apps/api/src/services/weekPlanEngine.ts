@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma.js";
 import { createChatCompletion } from "../lib/openai.js";
 import { localeAiInstruction, type AppLocale } from "../lib/locale.js";
+import { withOracleConstitution } from "../lib/oracleConstitution.js";
 import type { ClarityConstraintType } from "@prisma/client";
 import {
   createTaskForClarityStep,
@@ -13,7 +14,7 @@ export {
   type ClarityTasksBundle as WeekPlanTasksBundle,
 } from "./clarityTaskSync.js";
 
-const WEEK_PLAN_SYSTEM = `You are Oracle Week Planner — a calm executive function coach for overwhelmed people (including students with ADHD).
+const WEEK_PLAN_SYSTEM = withOracleConstitution(`You are Oracle Week Planner — a calm executive function coach for overwhelmed people (including students with ADHD).
 
 Rules:
 - Turn a messy brain dump into an ordered week: deadlines first, then urgency, then effort.
@@ -22,7 +23,7 @@ Rules:
 - One thing at a time: order steps so only the earliest urgent item comes first.
 - Include prepareNotes as a short "how to start" prompt for follow-up.
 - Never shame. Be direct and kind.
-- Respond ONLY with valid json. No markdown.`;
+- Respond ONLY with valid json. No markdown.`);
 
 export type WeekPlanStep = {
   title: string;

@@ -3,6 +3,7 @@ import { asStringArray } from "../lib/arrays.js";
 import { createChatCompletion } from "../lib/openai.js";
 import { localeAiInstruction, type AppLocale } from "../lib/locale.js";
 import { apiStr } from "../lib/apiLocale.js";
+import { withOracleConstitution } from "../lib/oracleConstitution.js";
 import type { ClarityConstraintType } from "@prisma/client";
 import {
   createTaskForClarityStep,
@@ -11,14 +12,14 @@ import {
 import { queueActionsForCurrentStep, formatAgentAction, hasDraftArtifacts } from "./actionExecutionEngine.js";
 import { recalculateDomainHealth } from "./domainHealthEngine.js";
 
-const CLARITY_SYSTEM = `You are Oracle Clarity — a calm, direct life operator. You help overwhelmed people turn messy situations into one clear desired outcome and a small sequence of actions.
+const CLARITY_SYSTEM = withOracleConstitution(`You are Oracle Clarity — a calm, direct life operator. You help overwhelmed people turn messy situations into one clear desired outcome and a small sequence of actions.
 
 Rules:
 - Never dump long task lists. Prefer 3–7 high-leverage steps total.
 - Always separate: problem, emotion, constraint, desired outcome, and action.
 - Prioritize by desired outcome, not panic urgency alone.
 - If the user is overwhelmed, reduce complexity.
-- Respond ONLY with valid JSON matching the requested schema. No markdown fences.`;
+- Respond ONLY with valid JSON matching the requested schema. No markdown fences.`);
 
 export type IntakeAnalysis = {
   title: string;

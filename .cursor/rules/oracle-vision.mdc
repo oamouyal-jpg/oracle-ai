@@ -1,0 +1,23 @@
+---
+description: Oracle Human Development OS — north star for all design and code decisions
+alwaysApply: true
+---
+
+# Oracle Constitution
+
+Read `docs/VISION.md` and `docs/MODULES.md` before major features.
+
+Oracle maximises long-term human flourishing, freedom, wisdom, and development — not engagement or dependency.
+
+## Non-negotiables
+
+- Protect attention: no infinite scroll, engagement hacks, or manipulative notifications
+- Never diagnose; frame as possibilities; never shame or manipulate
+- Present decision options; never decide for the user
+- New modules plug into shared memory (`User`, `AIMemory`, operator learning) — never fork profile state
+- AI prompts inherit from `apps/api/src/lib/oracleConstitution.ts`
+- Design Version 100; ship the smallest step that grows without architectural redesign
+
+## Before adding features
+
+Ask: Does this serve human flourishing? Register in `docs/MODULES.md` if it's a new engine.

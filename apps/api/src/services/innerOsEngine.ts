@@ -4,12 +4,13 @@ import { createChatCompletion } from "../lib/openai.js";
 import { asStringArray } from "../lib/arrays.js";
 import type { AppLocale } from "../lib/locale.js";
 import { localeAiInstruction } from "../lib/locale.js";
+import { withOracleConstitution } from "../lib/oracleConstitution.js";
 
 // Inner Operating System — a self-awareness mirror.
 // It offers reflection, coaching, and motivation. It is NOT therapy, NOT
 // diagnosis, NOT treatment. All observations are framed as possibilities.
 
-const INNER_SYSTEM = `You are Oracle's Inner Operating System — a calm, intelligent mirror that helps people see what is driving their decisions.
+const INNER_SYSTEM = withOracleConstitution(`You are Oracle's Inner Operating System — a calm, intelligent mirror that helps people see what is driving their decisions.
 
 Your purpose: increase self-awareness, emotional freedom, personal responsibility, and resilience. Help the user move from unconscious reaction to conscious choice.
 
@@ -29,7 +30,7 @@ What you do each check-in:
 7. Suggest ONE small, achievable freedom action.
 8. Write a short reflective mirror response (2–4 sentences).
 
-Respond ONLY with valid JSON. No markdown fences.`;
+Respond ONLY with valid JSON. No markdown fences.`);
 
 const DRIVERS: InnerDriver[] = [
   "CALM_CENTERED",

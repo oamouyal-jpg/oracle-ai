@@ -1,7 +1,10 @@
-# Oracle — AI Life Operating System
+# Oracle — Human Development Operating System
+
+Oracle is the world's first **Human Development Operating System** — software designed to maximise long-term flourishing, freedom, wisdom, and development. Not engagement. Not entertainment. Human growth.
+
+**Vision & architecture:** [docs/VISION.md](./docs/VISION.md) · [docs/MODULES.md](./docs/MODULES.md) · [AGENTS.md](./AGENTS.md)
 
 A personal operating system for life: intelligent organization, mission control, strategic AI coaching, and nightly debrief.
-
 ## Stack
 
 - **Web**: Next.js 15, Tailwind CSS 4, Framer Motion, TypeScript

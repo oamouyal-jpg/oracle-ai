@@ -27,6 +27,7 @@ export const fr = {
     chat: "Oracle IA",
     execute: "Mode exécution",
     journal: "Journal",
+    vision: "Vision",
   },
   sidebar: {
     lifeOs: "OS de vie",

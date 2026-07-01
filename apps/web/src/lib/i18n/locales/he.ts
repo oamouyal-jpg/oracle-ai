@@ -27,6 +27,7 @@ export const he = {
     chat: "Oracle AI",
     execute: "מצב ביצוע",
     journal: "יומן",
+    vision: "חזון",
   },
   sidebar: {
     lifeOs: "Life OS",

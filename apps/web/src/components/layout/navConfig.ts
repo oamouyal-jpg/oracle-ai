@@ -13,6 +13,7 @@ import {
   Brain,
   Bot,
   Sparkles,
+  Compass,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,7 +33,8 @@ export type NavItem = {
     | "nav.debrief"
     | "nav.chat"
     | "nav.execute"
-    | "nav.journal";
+    | "nav.journal"
+    | "nav.vision";
   icon: LucideIcon;
 };
 
@@ -51,6 +53,7 @@ export const navItems: NavItem[] = [
   { href: "/chat", key: "nav.chat", icon: MessageSquare },
   { href: "/execute", key: "nav.execute", icon: Zap },
   { href: "/journal", key: "nav.journal", icon: BookOpen },
+  { href: "/vision", key: "nav.vision", icon: Compass },
 ];
 
 /** Primary tabs on mobile bottom bar */

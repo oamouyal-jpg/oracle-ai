@@ -16,8 +16,8 @@ type WidenStrings<T> = T extends string
 
 const en = {
   meta: {
-    title: "Oracle — Life Operating System",
-    description: "AI-powered life management, strategy, and execution",
+    title: "Oracle — Human Development OS",
+    description: "Software designed to maximise long-term flourishing, freedom, wisdom, and development",
   },
   language: {
     label: "Language",
@@ -43,6 +43,7 @@ const en = {
     chat: "Oracle AI",
     execute: "Execution Mode",
     journal: "Journal",
+    vision: "Vision",
   },
   sidebar: {
     lifeOs: "Life OS",
