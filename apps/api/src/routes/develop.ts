@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { asyncHandler } from "../lib/asyncHandler.js";
 import { prisma } from "../lib/prisma.js";
 import { resolveUserId } from "../lib/user.js";
@@ -54,7 +55,24 @@ developRouter.get("/knowledge", asyncHandler(async (req, res) => {
 
 developRouter.post("/knowledge/generate", asyncHandler(async (req, res) => {
   const userId = await resolveUserId(req);
-  res.json(await generateKnowledgeItems(userId, requestLocale(req)));
+  const body = z.object({ focus: z.string().min(1).max(500).optional() }).parse(req.body ?? {});
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { knowledgeInterests: true } });
+  const interests = Array.isArray(user.knowledgeInterests)
+    ? (user.knowledgeInterests as unknown[]).filter((x): x is string => typeof x === "string")
+    : [];
+  res.json(
+    await generateKnowledgeItems(userId, requestLocale(req), { focus: body.focus, interests })
+  );
+}));
+
+developRouter.patch("/knowledge/interests", asyncHandler(async (req, res) => {
+  const userId = await resolveUserId(req);
+  const body = z.object({ interests: z.array(z.string().min(1).max(120)).max(20) }).parse(req.body);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { knowledgeInterests: body.interests as Prisma.InputJsonValue },
+  });
+  res.json({ interests: body.interests });
 }));
 
 developRouter.post("/knowledge", asyncHandler(async (req, res) => {

@@ -121,10 +121,11 @@ export async function getCognitiveProfile(userId: string): Promise<CognitiveProf
 }
 
 export async function getDevelopHub(userId: string) {
-  const [profile, recentKnowledge, learningTopics, relationships, healthLogs, financeGoals, ideas, research] =
+  const [profile, user, recentKnowledge, learningTopics, relationships, healthLogs, financeGoals, ideas, research] =
     await Promise.all([
       getCognitiveProfile(userId),
-      prisma.knowledgeItem.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 5 }),
+      prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { knowledgeInterests: true } }),
+      prisma.knowledgeItem.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 50 }),
       prisma.learningTopic.findMany({ where: { userId }, orderBy: { updatedAt: "desc" }, take: 10 }),
       prisma.relationship.findMany({ where: { userId }, orderBy: { importance: "desc" }, take: 10 }),
       prisma.healthLog.findMany({ where: { userId }, orderBy: { loggedAt: "desc" }, take: 10 }),
@@ -139,6 +140,9 @@ export async function getDevelopHub(userId: string) {
 
   return {
     profile,
+    knowledgeInterests: Array.isArray(user.knowledgeInterests)
+      ? (user.knowledgeInterests as unknown[]).filter((x): x is string => typeof x === "string")
+      : [],
     knowledge: recentKnowledge,
     learning: learningTopics,
     relationships,

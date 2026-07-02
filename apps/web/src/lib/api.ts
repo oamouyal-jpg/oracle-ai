@@ -376,7 +376,16 @@ export const api = {
     }),
   developGraph: () => fetchApi<KnowledgeGraph>("/develop/graph"),
   developGraphRebuild: () => fetchApi<KnowledgeGraph>("/develop/graph/rebuild", { method: "POST" }),
-  generateKnowledge: () => fetchApi<KnowledgeItem[]>("/develop/knowledge/generate", { method: "POST" }),
+  generateKnowledge: (focus?: string) =>
+    fetchApi<KnowledgeItem[]>("/develop/knowledge/generate", {
+      method: "POST",
+      body: JSON.stringify(focus ? { focus } : {}),
+    }),
+  saveKnowledgeInterests: (interests: string[]) =>
+    fetchApi<{ interests: string[] }>("/develop/knowledge/interests", {
+      method: "PATCH",
+      body: JSON.stringify({ interests }),
+    }),
   generateLearning: () => fetchApi<LearningTopic[]>("/develop/learning/generate", { method: "POST" }),
   addRelationship: (data: { name: string; role?: string; notes?: string }) =>
     fetchApi<Relationship>("/develop/relationships", { method: "POST", body: JSON.stringify(data) }),
@@ -526,6 +535,7 @@ export interface KnowledgeGraph {
 
 export interface DevelopHub {
   profile: CognitiveProfile;
+  knowledgeInterests: string[];
   knowledge: KnowledgeItem[];
   learning: LearningTopic[];
   relationships: Relationship[];

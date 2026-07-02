@@ -182,26 +182,24 @@ export default function DevelopPage() {
       ) : null}
 
       {tab === "knowledge" && hub ? (
-        <ModulePanel
-          title={t("develop.tabs.knowledge")}
-          onGenerate={async () => {
-            await api.generateKnowledge();
+        <KnowledgePanel
+          items={hub.knowledge}
+          interests={hub.knowledgeInterests}
+          onSaveInterests={async (interests) => {
+            await api.saveKnowledgeInterests(interests);
             await load();
           }}
+          onGenerate={async (focus) => {
+            setBusy(true);
+            try {
+              await api.generateKnowledge(focus);
+              await load();
+            } finally {
+              setBusy(false);
+            }
+          }}
           busy={busy}
-          empty={hub.knowledge.length === 0}
-          emptyHint={t("develop.emptyHint")}
-        >
-          {hub.knowledge.map((k) => (
-            <div key={k.id} className="rounded-xl border border-white/5 bg-black/20 p-4">
-              <p className="font-medium text-zinc-100">{k.title}</p>
-              <p className="mt-1 text-sm text-zinc-400">{k.summary}</p>
-              {k.uncertainty ? (
-                <p className="mt-2 text-xs text-amber-200/80">⚠ {k.uncertainty}</p>
-              ) : null}
-            </div>
-          ))}
-        </ModulePanel>
+        />
       ) : null}
 
       {tab === "learning" && hub ? (
@@ -421,6 +419,131 @@ function CrudPanel({
         </button>
       </form>
       <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function KnowledgePanel({
+  items,
+  interests,
+  onSaveInterests,
+  onGenerate,
+  busy,
+}: {
+  items: { id: string; title: string; summary: string; uncertainty: string | null }[];
+  interests: string[];
+  onSaveInterests: (interests: string[]) => Promise<void>;
+  onGenerate: (focus?: string) => Promise<void>;
+  busy: boolean;
+}) {
+  const { t } = useLocale();
+  const [interestInput, setInterestInput] = useState("");
+  const [focus, setFocus] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const addInterest = async () => {
+    const next = interestInput.trim();
+    if (!next || interests.includes(next)) return;
+    setSaving(true);
+    await onSaveInterests([...interests, next]);
+    setInterestInput("");
+    setSaving(false);
+  };
+
+  const removeInterest = async (topic: string) => {
+    setSaving(true);
+    await onSaveInterests(interests.filter((i) => i !== topic));
+    setSaving(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-sm font-medium text-zinc-200">{t("develop.tabs.knowledge")}</h2>
+        <p className="mt-1 text-xs text-zinc-500">{t("develop.knowledgeDesc")}</p>
+      </div>
+
+      <GlassCard>
+        <p className="text-[10px] uppercase tracking-wide text-zinc-500">{t("develop.knowledgeInterestsLabel")}</p>
+        <form
+          className="mt-2 flex gap-2"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await addInterest();
+          }}
+        >
+          <input
+            value={interestInput}
+            onChange={(e) => setInterestInput(e.target.value)}
+            placeholder={t("develop.knowledgeInterestsPlaceholder")}
+            className="flex-1 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-zinc-100"
+          />
+          <button
+            type="submit"
+            disabled={saving || !interestInput.trim()}
+            className="rounded-lg bg-indigo-500/25 px-4 py-2 text-sm text-indigo-100 border border-indigo-400/30 disabled:opacity-50"
+          >
+            {t("develop.add")}
+          </button>
+        </form>
+        {interests.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {interests.map((topic) => (
+              <span
+                key={topic}
+                className="inline-flex items-center gap-1 rounded-full bg-indigo-500/15 px-3 py-1 text-xs text-indigo-100"
+              >
+                {topic}
+                <button
+                  type="button"
+                  onClick={() => removeInterest(topic)}
+                  className="text-indigo-300/70 hover:text-indigo-100"
+                  aria-label={t("develop.removeInterest")}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-2 text-xs text-zinc-500">{t("develop.emptyHint")}</p>
+        )}
+      </GlassCard>
+
+      <form
+        className="flex gap-2"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          await onGenerate(focus.trim() || undefined);
+          setFocus("");
+        }}
+      >
+        <input
+          value={focus}
+          onChange={(e) => setFocus(e.target.value)}
+          placeholder={t("develop.knowledgeFocusPlaceholder")}
+          className="flex-1 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-zinc-100"
+        />
+        <button
+          type="submit"
+          disabled={busy}
+          className="shrink-0 rounded-lg bg-indigo-500/25 px-4 py-2 text-sm text-indigo-100 border border-indigo-400/30 disabled:opacity-50"
+        >
+          {focus.trim() ? t("develop.knowledgeFocusRun") : t("develop.generate")}
+        </button>
+      </form>
+
+      <div className="space-y-2">
+        {items.map((k) => (
+          <div key={k.id} className="rounded-xl border border-white/5 bg-black/20 p-4">
+            <p className="font-medium text-zinc-100">{k.title}</p>
+            <p className="mt-1 text-sm text-zinc-400">{k.summary}</p>
+            {k.uncertainty ? (
+              <p className="mt-2 text-xs text-amber-200/80">⚠ {k.uncertainty}</p>
+            ) : null}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

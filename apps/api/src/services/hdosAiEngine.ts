@@ -16,21 +16,47 @@ function parseJsonArray<T>(raw: string): T[] {
 }
 
 /** AI-generate knowledge items from user context (no external fetch in v0 — structured insights). */
-export async function generateKnowledgeItems(userId: string, locale: AppLocale = "en") {
-  const [learning, missions, existing] = await Promise.all([
+export async function generateKnowledgeItems(
+  userId: string,
+  locale: AppLocale = "en",
+  opts?: { focus?: string; interests?: string[] }
+) {
+  const [learning, missions, journals, existing, user] = await Promise.all([
     buildOperatorLearningContext(userId),
     prisma.mission.findMany({ where: { userId, status: "ACTIVE" }, take: 5 }),
+    prisma.journalEntry.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 3, select: { content: true } }),
     prisma.knowledgeItem.count({ where: { userId } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { knowledgeInterests: true } }),
   ]);
 
-  if (existing >= 20) return prisma.knowledgeItem.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 10 });
+  const savedInterests = Array.isArray(user?.knowledgeInterests)
+    ? (user!.knowledgeInterests as unknown[]).filter((x): x is string => typeof x === "string")
+    : [];
+  const interests = opts?.interests?.length ? opts.interests : savedInterests;
+  const focus = opts?.focus?.trim();
+
+  if (!focus && existing >= 20) {
+    return prisma.knowledgeItem.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 10 });
+  }
 
   const system = buildOracleSystemPrompt(
     learning.operatorName,
     learning,
     locale,
-    `Generate 3-5 knowledge insights tailored to the user's active life context. Each item: title, summary (2-3 sentences), source (e.g. "Oracle synthesis"), biasNote (possible bias to watch), uncertainty (what we don't know), tags (string[]), relevance (0-100). Frame competing viewpoints where relevant. Return JSON: { "items": [...] }`
+    `Generate ${focus ? "1-2" : "3-5"} knowledge insights tailored to the user's life context and stated interests. Each item: title, summary (2-3 sentences), source (e.g. "Oracle synthesis"), biasNote (possible bias to watch), uncertainty (what we don't know), tags (string[]), relevance (0-100). Frame competing viewpoints where relevant. Return JSON: { "items": [...] }`
   );
+
+  const contextLines = [
+    `Active missions: ${missions.map((m) => m.title).join("; ") || "none"}`,
+    `Profile patterns: ${learning.strategicProfile.patterns.join("; ") || "none"}`,
+    interests.length ? `Topics they want to learn about: ${interests.join(", ")}` : null,
+    journals.length
+      ? `Recent journal themes: ${journals.map((j) => j.content.slice(0, 120)).join(" | ")}`
+      : null,
+    focus ? `Specific question or topic to address now: ${focus}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   const result = await createChatCompletion({
     model: "gpt-4o-mini",
@@ -38,10 +64,7 @@ export async function generateKnowledgeItems(userId: string, locale: AppLocale =
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: system },
-      {
-        role: "user",
-        content: `Active missions: ${missions.map((m) => m.title).join("; ") || "none"}\nProfile patterns: ${learning.strategicProfile.patterns.join("; ")}`,
-      },
+      { role: "user", content: contextLines },
     ],
   });
 
@@ -63,18 +86,21 @@ export async function generateKnowledgeItems(userId: string, locale: AppLocale =
   if (items.length === 0) {
     items = [
       {
-        title: "Focus beats breadth",
-        summary: "Your active mission load suggests narrowing to one leverage move today will outperform scattered effort.",
+        title: focus ? `On ${focus.slice(0, 60)}` : "Focus beats breadth",
+        summary: focus
+          ? `You asked about "${focus}". Add more context in missions or journal, or refine your topic above, for sharper insights.`
+          : "Your active mission load suggests narrowing to one leverage move today will outperform scattered effort.",
         source: "Oracle synthesis",
         uncertainty: "Exact emotional cost of switching tasks is unknown.",
-        tags: ["focus", "planning"],
+        tags: focus ? [focus.slice(0, 30)] : ["focus", "planning"],
         relevance: 80,
       },
     ];
   }
 
+  const limit = focus ? 2 : 5;
   const created = [];
-  for (const item of items.slice(0, 5)) {
+  for (const item of items.slice(0, limit)) {
     const row = await prisma.knowledgeItem.create({
       data: {
         userId,

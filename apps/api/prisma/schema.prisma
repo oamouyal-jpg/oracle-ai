@@ -25,6 +25,7 @@ model User {
   morningMinute      Int               @default(30)
   quietHoursStart    Int               @default(22)
   quietHoursEnd      Int               @default(7)
+  knowledgeInterests Json              @default("[]")
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   domains          Domain[]
