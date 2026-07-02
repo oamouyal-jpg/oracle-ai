@@ -6,6 +6,7 @@ import { sendPush, pushConfigured, type PushPayload } from "../lib/push.js";
 import { buildMorningNotification } from "./morningNotification.js";
 import { buildTaskReminderPayloads } from "./taskReminders.js";
 import { getActiveFocusTasks } from "./focusTasks.js";
+import { runDevelopmentCycle, getDevelopmentSnapshot } from "./developmentIntelEngine.js";
 
 const OPEN_STATUSES = ["PENDING", "IN_PROGRESS", "PARTIAL", "DELAYED", "RESCHEDULED"] as const;
 
@@ -142,8 +143,13 @@ export async function computeNudges(user: SchedulableUser, now = new Date()): Pr
  * Dedup is enforced by NotificationLog's unique (userId, dedupeKey).
  */
 export async function runScheduler(now = new Date()) {
+  const development = await runDevelopmentIntelScheduler(now).catch((err) => {
+    console.warn("[Oracle] development intel scheduler failed:", (err as Error)?.message);
+    return { refreshed: 0, eligible: 0 };
+  });
+
   if (!pushConfigured()) {
-    return { skipped: "push-not-configured", users: 0, sent: 0 };
+    return { skipped: "push-not-configured", users: 0, sent: 0, development };
   }
 
   const users = await prisma.user.findMany({
@@ -201,7 +207,7 @@ export async function runScheduler(now = new Date()) {
     }
   }
 
-  return { users: users.length, sent };
+  return { users: users.length, sent, development };
 }
 
 /* ─── In-app "Right now" snapshot ─── */
@@ -211,6 +217,9 @@ export type ProactiveSnapshot = {
   overdueCount: number;
   dueTodayCount: number;
   focusCount: number;
+  knowledgePulse: { title: string; summary: string } | null;
+  blindSpot: string | null;
+  learningOpportunity: string | null;
 };
 
 function endOfToday(): Date {
@@ -224,7 +233,7 @@ export async function getProactiveSnapshot(
   locale: AppLocale = "en"
 ): Promise<ProactiveSnapshot> {
   const now = new Date();
-  const [overdue, dueToday, focusTasks, currentStep] = await Promise.all([
+  const [overdue, dueToday, focusTasks, currentStep, devSnapshot] = await Promise.all([
     prisma.task.findMany({
       where: { userId, status: { in: [...OPEN_STATUSES] }, dueDate: { not: null, lt: now } },
       orderBy: { dueDate: "asc" },
@@ -247,6 +256,7 @@ export async function getProactiveSnapshot(
       orderBy: { priorityOrder: "asc" },
       include: { issue: { select: { id: true, title: true } } },
     }),
+    getDevelopmentSnapshot(userId),
   ]);
 
   let topAction: ProactiveSnapshot["topAction"] = null;
@@ -280,5 +290,46 @@ export async function getProactiveSnapshot(
     overdueCount: overdue.length,
     dueTodayCount: dueToday.length,
     focusCount: focusTasks.length,
+    knowledgePulse: devSnapshot?.knowledgePulse
+      ? { title: devSnapshot.knowledgePulse.title, summary: devSnapshot.knowledgePulse.summary }
+      : null,
+    blindSpot: devSnapshot?.blindSpots[0] ?? null,
+    learningOpportunity: devSnapshot?.learningOpportunity?.nextStep ?? null,
   };
+}
+
+/** Daily development intelligence for all proactive users during morning window. */
+export async function runDevelopmentIntelScheduler(now = new Date()) {
+  const users = await prisma.user.findMany({
+    where: { proactiveEnabled: true },
+    select: {
+      id: true,
+      locale: true,
+      timezone: true,
+      morningHour: true,
+      morningMinute: true,
+      cognitiveSnapshotAt: true,
+    },
+  });
+
+  let refreshed = 0;
+  for (const user of users) {
+    const stale =
+      !user.cognitiveSnapshotAt ||
+      now.getTime() - user.cognitiveSnapshotAt.getTime() > 20 * 60 * 60 * 1000;
+    if (!stale) continue;
+
+    const parts = localParts(user.timezone, now);
+    const morningStart = user.morningHour * 60 + user.morningMinute;
+    const inWindow = parts.minutesOfDay >= morningStart && parts.minutesOfDay < morningStart + 240;
+    if (!inWindow) continue;
+
+    try {
+      await runDevelopmentCycle(user.id, parseLocale(user.locale));
+      refreshed += 1;
+    } catch (err) {
+      console.warn(`[Oracle] dev intel failed for ${user.id}:`, (err as Error)?.message);
+    }
+  }
+  return { refreshed, eligible: users.length };
 }

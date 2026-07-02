@@ -251,5 +251,8 @@ export async function seedHdosModules(userId: string, locale: AppLocale = "en") 
     results.learning = topics.length;
   }
 
+  const { runDevelopmentCycle } = await import("./developmentIntelEngine.js");
+  await runDevelopmentCycle(userId, locale, { force: true }).catch(() => {});
+
   return results;
 }

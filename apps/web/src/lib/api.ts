@@ -386,6 +386,8 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ interests }),
     }),
+  developAssess: () =>
+    fetchApi<{ ok: boolean; hub: DevelopHub }>("/develop/assess", { method: "POST" }),
   generateLearning: () => fetchApi<LearningTopic[]>("/develop/learning/generate", { method: "POST" }),
   addRelationship: (data: { name: string; role?: string; notes?: string }) =>
     fetchApi<Relationship>("/develop/relationships", { method: "POST", body: JSON.stringify(data) }),
@@ -455,6 +457,9 @@ export interface ProactiveSnapshot {
   overdueCount: number;
   dueTodayCount: number;
   focusCount: number;
+  knowledgePulse: { title: string; summary: string } | null;
+  blindSpot: string | null;
+  learningOpportunity: string | null;
 }
 
 export interface CognitiveProfile {
@@ -463,6 +468,10 @@ export interface CognitiveProfile {
   beliefs: { values: string[]; stableValues: { name: string; description: string | null }[] };
   patterns: { name: string; description: string | null; count: number }[];
   blindSpots: string[];
+  worldviewNote: string | null;
+  knowledgePulse: { title: string; summary: string } | null;
+  learningOpportunity: { topic: string; nextStep: string } | null;
+  assessedAt: string | null;
   moduleCounts: Record<string, number>;
   learning: { topics: number; readyCount: number };
   relationships: { count: number; highlights: string[] };
@@ -821,6 +830,9 @@ export interface Briefing {
   missionProgress: string;
   strategicGuidance: string;
   fullContent?: string;
+  knowledgeInsight?: string | null;
+  blindSpotNote?: string | null;
+  learningOpportunity?: string | null;
 }
 
 export interface DailyOracleLine {

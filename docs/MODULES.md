@@ -15,8 +15,8 @@ Maps the Human Development OS vision ([VISION.md](./VISION.md)) to code today an
 | **Vision Engine** | partial | Life map, daily briefing, dashboard, insights | ✓ |
 | **Communication Engine** | partial | Agent actions queue, clarity advice chat | ✓ |
 | **Ethics Engine** | partial | Inner OS safety rules, no-diagnosis policy, possibility framing | ✓ |
-| **Knowledge Engine** | partial | `KnowledgeItem`, `hdosAiEngine`, `/api/develop/knowledge`, cognitive profile | ✓ |
-| **Learning Engine** | partial | `LearningTopic`, AI paths, `/api/develop/learning` | ✓ |
+| **Knowledge Engine** | partial | `developmentIntelEngine`, `hdosAiEngine`, daily briefing knowledge, auto pulse | ✓ |
+| **Learning Engine** | partial | `LearningTopic`, auto assessment via development cycle | ✓ |
 | **Relationship Engine** | partial | `Relationship` CRUD, `/api/develop/relationships` | ✓ |
 | **Health Engine** | partial | `HealthLog`, mood/energy tracking, `/api/develop/health` | ✓ |
 | **Finance Engine** | partial | `FinanceGoal`, `/api/develop/finance` | ✓ |

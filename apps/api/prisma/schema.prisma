@@ -26,6 +26,8 @@ model User {
   quietHoursStart    Int               @default(22)
   quietHoursEnd      Int               @default(7)
   knowledgeInterests Json              @default("[]")
+  cognitiveSnapshot   Json?
+  cognitiveSnapshotAt DateTime?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   domains          Domain[]
@@ -316,6 +318,9 @@ model DailyBriefing {
   missionProgress     String?
   strategicGuidance   String?
   fullContent         String?
+  knowledgeInsight    String?
+  blindSpotNote       String?
+  learningOpportunity String?
   createdAt           DateTime @default(now())
 
   @@unique([userId, date])

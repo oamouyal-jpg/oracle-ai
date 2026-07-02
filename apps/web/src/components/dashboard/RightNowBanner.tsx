@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Flame, Target } from "lucide-react";
+import { ArrowRight, Flame, Target, Lightbulb } from "lucide-react";
 import { api, type ProactiveSnapshot } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { localizeTaskTitle } from "@/lib/i18n/localizeContent";
@@ -12,6 +12,7 @@ const KIND_LABEL: Record<string, string> = {
   DUE_TODAY: "rightNow.kindDueToday",
   FOCUS: "rightNow.kindFocus",
   CLARITY: "rightNow.kindClarity",
+  KNOWLEDGE: "rightNow.kindKnowledge",
 };
 
 export function RightNowBanner() {
@@ -23,10 +24,23 @@ export function RightNowBanner() {
   }, []);
 
   if (!snap) return null;
-  const { topAction, overdueCount, dueTodayCount } = snap;
-  if (!topAction && overdueCount === 0 && dueTodayCount === 0) return null;
 
-  const urgent = topAction?.kind === "OVERDUE";
+  const { topAction, overdueCount, dueTodayCount, knowledgePulse, blindSpot } = snap;
+  const hasTaskUrgency = topAction || overdueCount > 0 || dueTodayCount > 0;
+  const knowledgeAction =
+    !hasTaskUrgency && knowledgePulse
+      ? {
+          kind: "KNOWLEDGE",
+          title: knowledgePulse.title,
+          detail: knowledgePulse.summary,
+          url: "/develop",
+        }
+      : null;
+
+  const displayAction = topAction ?? knowledgeAction;
+  if (!displayAction && !blindSpot) return null;
+
+  const urgent = displayAction?.kind === "OVERDUE";
 
   return (
     <div
@@ -42,7 +56,13 @@ export function RightNowBanner() {
             urgent ? "text-rose-300/90" : "text-emerald-300/90"
           }`}
         >
-          {urgent ? <Flame className="h-3 w-3" /> : <Target className="h-3 w-3" />}
+          {urgent ? (
+            <Flame className="h-3 w-3" />
+          ) : displayAction?.kind === "KNOWLEDGE" ? (
+            <Lightbulb className="h-3 w-3" />
+          ) : (
+            <Target className="h-3 w-3" />
+          )}
           {t("rightNow.title")}
         </span>
         <div className="flex items-center gap-1.5">
@@ -59,32 +79,42 @@ export function RightNowBanner() {
         </div>
       </div>
 
-      {topAction ? (
+      {displayAction ? (
         <div className="mt-3 flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] text-zinc-400">{t(KIND_LABEL[topAction.kind] ?? "rightNow.kindFocus")}</p>
-            <p className="truncate text-base font-light text-zinc-50">
-              {localizeTaskTitle(topAction.title, locale)}
+            <p className="text-[11px] text-zinc-400">
+              {t(KIND_LABEL[displayAction.kind] ?? "rightNow.kindFocus")}
             </p>
-            {topAction.detail ? (
-              <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500">{topAction.detail}</p>
+            <p className="truncate text-base font-light text-zinc-50">
+              {displayAction.kind === "KNOWLEDGE"
+                ? displayAction.title
+                : localizeTaskTitle(displayAction.title, locale)}
+            </p>
+            {displayAction.detail ? (
+              <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500">{displayAction.detail}</p>
             ) : null}
           </div>
           <Link
-            href={topAction.url}
+            href={displayAction.url}
             className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition ${
               urgent
                 ? "bg-rose-500/20 border border-rose-400/40 text-rose-100 hover:bg-rose-500/30"
                 : "bg-emerald-500/20 border border-emerald-400/40 text-emerald-100 hover:bg-emerald-500/30"
             }`}
           >
-            {t("rightNow.act")}
+            {displayAction.kind === "KNOWLEDGE" ? t("rightNow.knowledgeAct") : t("rightNow.act")}
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
       ) : (
         <p className="mt-2 text-sm text-zinc-400">{t("rightNow.allClear")}</p>
       )}
+
+      {blindSpot && !urgent ? (
+        <p className="mt-3 border-t border-white/5 pt-3 text-xs text-amber-200/80">
+          · {blindSpot}
+        </p>
+      ) : null}
     </div>
   );
 }

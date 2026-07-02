@@ -8,6 +8,7 @@ import {
 } from "../lib/operatorLearning.js";
 import { buildOfflineChatReply, parseChatContext } from "../lib/offlineStrategist.js";
 import { apiStr, mockDailyBriefing, mockNightAnalysis } from "../lib/apiLocale.js";
+import { getDevelopmentSnapshot } from "./developmentIntelEngine.js";
 
 async function buildContext(userId: string): Promise<string> {
   const [learning, domains, missions, tasks, lastDebrief] = await Promise.all([
@@ -157,16 +158,36 @@ export async function generateDailyBriefing(
   missionProgress: string;
   strategicGuidance: string;
   fullContent: string;
+  knowledgeInsight: string;
+  blindSpotNote: string;
+  learningOpportunity: string;
 }> {
-  const [context, learning] = await Promise.all([
+  const [context, learning, devSnapshot] = await Promise.all([
     buildContext(userId),
     buildOperatorLearningContext(userId),
+    getDevelopmentSnapshot(userId),
   ]);
+
+  const devContext = devSnapshot
+    ? `\nDevelopment intelligence (use in briefing):
+Blind spots: ${devSnapshot.blindSpots.join("; ")}
+Knowledge pulse: ${devSnapshot.knowledgePulse.title} — ${devSnapshot.knowledgePulse.summary}
+Learning opportunity: ${devSnapshot.learningOpportunity.topic} — ${devSnapshot.learningOpportunity.nextStep}
+Worldview: ${devSnapshot.worldviewNote}`
+    : "";
+
   const systemPrompt = buildOracleSystemPrompt(
     learning.operatorName,
     learning,
     locale,
-    `Generate a morning strategic briefing as JSON with keys: topPriorities (string[]), emotionalObservation, focusRecommendation, reminders (string[]), missionProgress, strategicGuidance, fullContent (narrative paragraph combining all). Address ${learning.operatorName} by name in fullContent.`
+    `Generate a morning strategic briefing as JSON with keys:
+topPriorities (string[]), emotionalObservation, focusRecommendation, reminders (string[]),
+missionProgress, strategicGuidance, fullContent (narrative paragraph combining all),
+knowledgeInsight (one insight that broadens worldview — indicate uncertainty),
+blindSpotNote (one gentle blind spot observation, not judgmental),
+learningOpportunity (what they're ready to learn next, one sentence).
+Address ${learning.operatorName} by name in fullContent.
+Include knowledge and learning in the briefing — Oracle continuously expands understanding.`
   );
 
   const aiResult = await createChatCompletion({
@@ -178,19 +199,43 @@ export async function generateDailyBriefing(
         role: "system",
         content: systemPrompt,
       },
-      { role: "user", content: `Context:\n${context}` },
+      { role: "user", content: `Context:\n${context}${devContext}` },
     ],
   });
 
   if (!aiResult.ok) {
-    return mockDailyBriefing(learning.operatorName, locale);
+    const mock = mockDailyBriefing(learning.operatorName, locale);
+    return {
+      ...mock,
+      knowledgeInsight: devSnapshot?.knowledgePulse.summary ?? mock.strategicGuidance,
+      blindSpotNote: devSnapshot?.blindSpots[0] ?? "",
+      learningOpportunity: devSnapshot?.learningOpportunity.nextStep ?? "",
+    };
   }
 
   const raw = aiResult.completion.choices[0]?.message?.content ?? "{}";
   try {
-    return JSON.parse(raw) as ReturnType<typeof generateDailyBriefing> extends Promise<infer T> ? T : never;
+    const parsed = JSON.parse(raw) as Record<string, string | string[]>;
+    return {
+      topPriorities: Array.isArray(parsed.topPriorities) ? parsed.topPriorities : [],
+      emotionalObservation: String(parsed.emotionalObservation ?? ""),
+      focusRecommendation: String(parsed.focusRecommendation ?? ""),
+      reminders: Array.isArray(parsed.reminders) ? parsed.reminders : [],
+      missionProgress: String(parsed.missionProgress ?? ""),
+      strategicGuidance: String(parsed.strategicGuidance ?? ""),
+      fullContent: String(parsed.fullContent ?? ""),
+      knowledgeInsight: String(parsed.knowledgeInsight ?? devSnapshot?.knowledgePulse.summary ?? ""),
+      blindSpotNote: String(parsed.blindSpotNote ?? devSnapshot?.blindSpots[0] ?? ""),
+      learningOpportunity: String(parsed.learningOpportunity ?? devSnapshot?.learningOpportunity.nextStep ?? ""),
+    };
   } catch {
-    return mockDailyBriefing(learning.operatorName, locale);
+    const mock = mockDailyBriefing(learning.operatorName, locale);
+    return {
+      ...mock,
+      knowledgeInsight: devSnapshot?.knowledgePulse.summary ?? "",
+      blindSpotNote: devSnapshot?.blindSpots[0] ?? "",
+      learningOpportunity: devSnapshot?.learningOpportunity.nextStep ?? "",
+    };
   }
 }
 

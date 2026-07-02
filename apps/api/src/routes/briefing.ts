@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.js";
 import { resolveUserId } from "../lib/user.js";
 import { requestLocale } from "../lib/requestLocale.js";
 import { generateDailyBriefing } from "../services/ai.js";
+import { ensureDevelopmentFresh } from "../services/developmentIntelEngine.js";
 
 export const briefingRouter = Router();
 
@@ -21,6 +22,7 @@ briefingRouter.get("/today", async (req, res) => {
   });
 
   if (!briefing) {
+    await ensureDevelopmentFresh(userId, requestLocale(req));
     const generated = await generateDailyBriefing(userId, requestLocale(req));
     briefing = await prisma.dailyBriefing.create({
       data: {
@@ -37,6 +39,7 @@ briefingRouter.get("/today", async (req, res) => {
 briefingRouter.post("/regenerate", async (req, res) => {
   const userId = await resolveUserId(req);
   const today = startOfDay();
+  await ensureDevelopmentFresh(userId, requestLocale(req));
   const generated = await generateDailyBriefing(userId, requestLocale(req));
 
   const briefing = await prisma.dailyBriefing.upsert({

@@ -22,7 +22,7 @@ function idParam(v: string | string[]) {
 
 developRouter.get("/hub", asyncHandler(async (req, res) => {
   const userId = await resolveUserId(req);
-  res.json(await getDevelopHub(userId));
+  res.json(await getDevelopHub(userId, requestLocale(req)));
 }));
 
 developRouter.get("/profile", asyncHandler(async (req, res) => {
@@ -35,7 +35,15 @@ developRouter.post("/seed", asyncHandler(async (req, res) => {
   const locale = requestLocale(req);
   const seeded = await seedHdosModules(userId, locale);
   await rebuildKnowledgeGraph(userId).catch(() => {});
-  res.json({ ok: true, seeded, hub: await getDevelopHub(userId) });
+  res.json({ ok: true, seeded, hub: await getDevelopHub(userId, locale) });
+}));
+
+developRouter.post("/assess", asyncHandler(async (req, res) => {
+  const userId = await resolveUserId(req);
+  const locale = requestLocale(req);
+  const { runDevelopmentCycle } = await import("../services/developmentIntelEngine.js");
+  const snapshot = await runDevelopmentCycle(userId, locale, { force: true });
+  res.json({ ok: true, snapshot, hub: await getDevelopHub(userId, locale) });
 }));
 
 developRouter.get("/graph", asyncHandler(async (req, res) => {

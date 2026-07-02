@@ -217,6 +217,8 @@ notificationsRouter.get(
   asyncHandler(async (req, res) => {
     const userId = await resolveUserId(req);
     const locale = requestLocale(req);
+    const { ensureDevelopmentFresh } = await import("../services/developmentIntelEngine.js");
+    await ensureDevelopmentFresh(userId, locale).catch(() => {});
     res.json(await getProactiveSnapshot(userId, locale));
   })
 );

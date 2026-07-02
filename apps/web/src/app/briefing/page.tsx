@@ -113,6 +113,36 @@ export default function BriefingPage() {
           {localizeApiPhrase(briefing.focusRecommendation, locale)}
         </p>
       </GlassCard>
+      {briefing.knowledgeInsight ? (
+        <GlassCard className="border-emerald-500/20">
+          <h2 className="text-xs uppercase tracking-widest text-emerald-400 mb-2">
+            {t("briefing.knowledgeInsight")}
+          </h2>
+          <p className="text-zinc-300">
+            {localizeApiPhrase(briefing.knowledgeInsight, locale)}
+          </p>
+        </GlassCard>
+      ) : null}
+      {briefing.blindSpotNote ? (
+        <GlassCard className="border-amber-500/20">
+          <h2 className="text-xs uppercase tracking-widest text-amber-400 mb-2">
+            {t("briefing.blindSpot")}
+          </h2>
+          <p className="text-zinc-300">
+            {localizeApiPhrase(briefing.blindSpotNote, locale)}
+          </p>
+        </GlassCard>
+      ) : null}
+      {briefing.learningOpportunity ? (
+        <GlassCard className="border-indigo-500/20">
+          <h2 className="text-xs uppercase tracking-widest text-indigo-400 mb-2">
+            {t("briefing.learningOpportunity")}
+          </h2>
+          <p className="text-zinc-300">
+            {localizeApiPhrase(briefing.learningOpportunity, locale)}
+          </p>
+        </GlassCard>
+      ) : null}
       <GlassCard>
         <h2 className="text-xs uppercase tracking-widest text-zinc-500 mb-2">
           {t("briefing.missionProgress")}

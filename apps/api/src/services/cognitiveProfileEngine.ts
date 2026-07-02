@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { buildOperatorLearningContext } from "../lib/operatorLearning.js";
+import { getDevelopmentSnapshot } from "./developmentIntelEngine.js";
 
 export type CognitiveProfile = {
   operatorName: string;
@@ -14,11 +15,18 @@ export type CognitiveProfile = {
   creativity: { activeIdeas: number };
   research: { openQueries: number };
   blindSpots: string[];
+  worldviewNote: string | null;
+  knowledgePulse: { title: string; summary: string } | null;
+  learningOpportunity: { topic: string; nextStep: string } | null;
+  assessedAt: string | null;
   moduleCounts: Record<string, number>;
 };
 
 export async function getCognitiveProfile(userId: string): Promise<CognitiveProfile> {
-  const ctx = await buildOperatorLearningContext(userId);
+  const [ctx, devSnapshot] = await Promise.all([
+    buildOperatorLearningContext(userId),
+    getDevelopmentSnapshot(userId),
+  ]);
   const [
     values,
     patterns,
@@ -57,13 +65,17 @@ export async function getCognitiveProfile(userId: string): Promise<CognitiveProf
       ? Math.round(moodLogs.reduce((s, h) => s + (h.value ?? 0), 0) / moodLogs.length)
       : null;
 
-  const blindSpots: string[] = [];
-  if (learning.filter((t) => t.proficiency < 40 && t.readyToLearn).length > 0) {
-    blindSpots.push("Learning gaps flagged — review Learning tab");
-  }
-  if (rels.length === 0) blindSpots.push("No key relationships mapped yet");
-  if (ctx.strategicProfile.triggers.length > 0) {
-    blindSpots.push(`Recurring triggers: ${ctx.strategicProfile.triggers.slice(0, 2).join(", ")}`);
+  const blindSpots: string[] = devSnapshot?.blindSpots?.length
+    ? devSnapshot.blindSpots
+    : [];
+  if (blindSpots.length === 0) {
+    if (learning.filter((t) => t.proficiency < 40 && t.readyToLearn).length > 0) {
+      blindSpots.push("Learning gaps flagged — review Learning tab");
+    }
+    if (relCount === 0) blindSpots.push("No key relationships mapped yet");
+    if (ctx.strategicProfile.triggers.length > 0) {
+      blindSpots.push(`Recurring triggers: ${ctx.strategicProfile.triggers.slice(0, 2).join(", ")}`);
+    }
   }
 
   const summary = [
@@ -108,6 +120,17 @@ export async function getCognitiveProfile(userId: string): Promise<CognitiveProf
     creativity: { activeIdeas: creativeCount },
     research: { openQueries: researchCount },
     blindSpots,
+    worldviewNote: devSnapshot?.worldviewNote ?? null,
+    knowledgePulse: devSnapshot?.knowledgePulse
+      ? { title: devSnapshot.knowledgePulse.title, summary: devSnapshot.knowledgePulse.summary }
+      : null,
+    learningOpportunity: devSnapshot?.learningOpportunity
+      ? {
+          topic: devSnapshot.learningOpportunity.topic,
+          nextStep: devSnapshot.learningOpportunity.nextStep,
+        }
+      : null,
+    assessedAt: devSnapshot?.assessedAt ?? null,
     moduleCounts: {
       knowledge: await prisma.knowledgeItem.count({ where: { userId } }),
       learning: learning.length,
@@ -120,7 +143,10 @@ export async function getCognitiveProfile(userId: string): Promise<CognitiveProf
   };
 }
 
-export async function getDevelopHub(userId: string) {
+export async function getDevelopHub(userId: string, locale: import("../lib/locale.js").AppLocale = "en") {
+  const { ensureDevelopmentFresh } = await import("./developmentIntelEngine.js");
+  await ensureDevelopmentFresh(userId, locale).catch(() => {});
+
   const [profile, user, recentKnowledge, learningTopics, relationships, healthLogs, financeGoals, ideas, research] =
     await Promise.all([
       getCognitiveProfile(userId),

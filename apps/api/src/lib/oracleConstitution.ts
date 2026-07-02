@@ -94,12 +94,17 @@ export const ORACLE_MODULES: Record<
   knowledge: {
     name: "Knowledge Engine",
     status: "partial",
-    servicePaths: ["services/hdosAiEngine.ts", "services/knowledgeGraphEngine.ts", "routes/develop.ts"],
+    servicePaths: [
+      "services/developmentIntelEngine.ts",
+      "services/hdosAiEngine.ts",
+      "services/knowledgeGraphEngine.ts",
+      "routes/develop.ts",
+    ],
   },
   learning: {
     name: "Learning Engine",
     status: "partial",
-    servicePaths: ["services/hdosAiEngine.ts", "routes/develop.ts"],
+    servicePaths: ["services/developmentIntelEngine.ts", "services/hdosAiEngine.ts", "routes/develop.ts"],
   },
   relationship: {
     name: "Relationship Engine",

@@ -148,15 +148,66 @@ export default function DevelopPage() {
       {tab === "profile" && p ? (
         <GlassCard glow>
           <p className="text-sm leading-relaxed text-zinc-200">{p.summary}</p>
-          {p.blindSpots.length > 0 ? (
-            <ul className="mt-4 space-y-1">
-              {p.blindSpots.map((b) => (
-                <li key={b} className="text-xs text-amber-200/90">
-                  · {b}
-                </li>
-              ))}
-            </ul>
+
+          {p.knowledgePulse ? (
+            <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+              <p className="text-[10px] uppercase tracking-wide text-emerald-300/80">{t("develop.knowledgePulseTitle")}</p>
+              <p className="mt-1 font-medium text-zinc-100">{p.knowledgePulse.title}</p>
+              <p className="mt-1 text-sm text-zinc-400">{p.knowledgePulse.summary}</p>
+            </div>
           ) : null}
+
+          {p.worldviewNote ? (
+            <div className="mt-4">
+              <p className="text-[10px] uppercase tracking-wide text-zinc-500">{t("develop.worldviewTitle")}</p>
+              <p className="mt-1 text-sm text-indigo-200/90">{p.worldviewNote}</p>
+            </div>
+          ) : null}
+
+          {p.blindSpots.length > 0 ? (
+            <div className="mt-4">
+              <p className="text-[10px] uppercase tracking-wide text-amber-300/80">{t("develop.blindSpotsTitle")}</p>
+              <ul className="mt-2 space-y-1">
+                {p.blindSpots.map((b) => (
+                  <li key={b} className="text-xs text-amber-200/90">
+                    · {b}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {p.learningOpportunity ? (
+            <div className="mt-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
+              <p className="text-[10px] uppercase tracking-wide text-indigo-300/80">{t("develop.learningNextTitle")}</p>
+              <p className="mt-1 text-sm text-zinc-200">{p.learningOpportunity.topic}</p>
+              <p className="mt-1 text-xs text-zinc-400">{p.learningOpportunity.nextStep}</p>
+            </div>
+          ) : null}
+
+          {p.assessedAt ? (
+            <p className="mt-4 text-[10px] text-zinc-600">
+              {t("develop.autoAssessed")}: {new Date(p.assessedAt).toLocaleString()}
+            </p>
+          ) : null}
+
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                const res = await api.developAssess();
+                setHub(res.hub);
+              } finally {
+                setBusy(false);
+              }
+            }}
+            className="mt-3 text-xs text-indigo-300 hover:text-indigo-100 disabled:opacity-50"
+          >
+            {t("develop.reassess")}
+          </button>
+
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {Object.entries(p.moduleCounts).map(([k, v]) => (
               <div key={k} className="rounded-lg bg-black/20 px-3 py-2 text-center">
